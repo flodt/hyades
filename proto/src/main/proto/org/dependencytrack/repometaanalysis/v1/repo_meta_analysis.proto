@@ -15,6 +15,7 @@ message AnalysisCommand {
 }
 
 enum FetchMeta{
+  // todo: this could be renamed to incorporate the extra changes
   FETCH_META_UNSPECIFIED = 0;
   FETCH_META_INTEGRITY_DATA = 1;
   FETCH_META_LATEST_VERSION = 2;
@@ -36,6 +37,34 @@ message AnalysisResult {
 
   // Integrity metadata of the component.
   optional IntegrityMeta integrity_meta = 5;
+
+  optional int32 starts = 6;
+  optional int32 forks = 7;
+  optional int32 contributors = 8;
+  optional float commitFrequency = 9;
+  optional int32 openIssues = 10;
+  optional int32 openPRs = 11;
+  optional string lastCommitDate = 12;
+  optional int32 busFactor = 13;
+  optional bool hasReadme = 14;
+  optional bool hasCodeOfConduct = 15;
+  optional bool hasSecurityPolicy = 16;
+  optional int32 dependents = 17;
+  optional int32 versions = 18;
+  optional int32 files = 19;
+
+  repeated ScoreCardCheck scoreCardChecks = 20;
+  optional float scoreCardScore = 21;
+  optional string scoreCardReferenceVersion = 22;
+}
+
+message ScoreCardCheck {
+  optional string name = 1;
+  optional string description = 2;
+  optional float score = 3;
+  optional string reason = 4;
+  repeated string details = 5;
+  optional string documentationUrl = 6;
 }
 
 message Component {
