@@ -29,6 +29,7 @@ import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
 
 @ApplicationScoped
 public class MetaAnalyzerProcessorSupplier implements FixedKeyProcessorSupplier<PackageURL, AnalysisCommand, AnalysisResult> {
@@ -37,20 +38,23 @@ public class MetaAnalyzerProcessorSupplier implements FixedKeyProcessorSupplier<
     private final RepositoryAnalyzerFactory analyzerFactory;
     private final SecretDecryptor secretDecryptor;
     private final Cache cache;
+    private final HealthAnalyzerFactory healthAnalyzerFactory;
 
     public MetaAnalyzerProcessorSupplier(final RepoEntityRepository repoEntityRepository,
                                          final RepositoryAnalyzerFactory analyzerFactory,
                                          final SecretDecryptor secretDecryptor,
-                                         @CacheName("metaAnalyzer") final Cache cache) {
+                                         @CacheName("metaAnalyzer") final Cache cache,
+                                         final HealthAnalyzerFactory healthAnalyzerFactory) {
         this.repoEntityRepository = repoEntityRepository;
         this.analyzerFactory = analyzerFactory;
         this.secretDecryptor = secretDecryptor;
         this.cache = cache;
+        this.healthAnalyzerFactory = healthAnalyzerFactory;
     }
 
     @Override
     public FixedKeyProcessor<PackageURL, AnalysisCommand, AnalysisResult> get() {
-        return new MetaAnalyzerProcessor(repoEntityRepository, analyzerFactory, secretDecryptor, cache);
+        return new MetaAnalyzerProcessor(repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthAnalyzerFactory);
     }
 
 }

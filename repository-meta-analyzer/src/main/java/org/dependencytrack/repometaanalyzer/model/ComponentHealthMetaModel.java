@@ -22,7 +22,7 @@ import org.dependencytrack.persistence.model.Component;
 
 import java.util.List;
 
-public class ComponentHealthMeta {
+public class ComponentHealthMetaModel {
     private final Component component;
 
     // Repository and Project (Health) Metadata
@@ -46,7 +46,7 @@ public class ComponentHealthMeta {
     private Float scoreCardScore;
     private String scoreCardReferenceVersion;
 
-    public ComponentHealthMeta(Component component) {
+    public ComponentHealthMetaModel(Component component) {
         this.component = component;
     }
 

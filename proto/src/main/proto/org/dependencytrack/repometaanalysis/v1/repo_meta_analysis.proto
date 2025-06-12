@@ -15,11 +15,11 @@ message AnalysisCommand {
 }
 
 enum FetchMeta{
-  // todo: this could be renamed to incorporate the extra changes
   FETCH_META_UNSPECIFIED = 0;
   FETCH_META_INTEGRITY_DATA = 1;
   FETCH_META_LATEST_VERSION = 2;
   FETCH_META_INTEGRITY_DATA_AND_LATEST_VERSION = 3;
+  FETCH_META_HEALTH = 4;
 }
 
 message AnalysisResult {

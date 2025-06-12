@@ -29,8 +29,6 @@ public class MetaModel implements Serializable {
     private String latestVersion;
     private Date publishedTimestamp;
 
-    private ComponentHealthMeta componentHealthMeta;
-
     public MetaModel(){
     }
     public MetaModel(final Component component) {
@@ -57,11 +55,4 @@ public class MetaModel implements Serializable {
         this.publishedTimestamp = publishedTimestamp;
     }
 
-    public ComponentHealthMeta getComponentHealthMeta() {
-        return componentHealthMeta;
-    }
-
-    public void setComponentHealthMeta(ComponentHealthMeta componentHealthMeta) {
-        this.componentHealthMeta = componentHealthMeta;
-    }
 }

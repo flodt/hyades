@@ -22,6 +22,7 @@ import com.github.packageurl.PackageURL;
 import com.google.protobuf.Timestamp;
 import io.quarkus.cache.Cache;
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.streams.processor.api.ContextualFixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.dependencytrack.common.SecretDecryptor;
@@ -32,11 +33,14 @@ import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
+import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
 import org.dependencytrack.repometaanalyzer.model.IntegrityMeta;
 import org.dependencytrack.repometaanalyzer.model.MetaAnalyzerCacheKey;
 import org.dependencytrack.repometaanalyzer.model.MetaModel;
 import org.dependencytrack.repometaanalyzer.repositories.IMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,15 +59,18 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
     private final RepositoryAnalyzerFactory analyzerFactory;
     private final SecretDecryptor secretDecryptor;
     private final Cache cache;
+    private final HealthAnalyzerFactory healthAnalyzerFactory;
 
     MetaAnalyzerProcessor(final RepoEntityRepository repoEntityRepository,
                           final RepositoryAnalyzerFactory analyzerFactory,
                           final SecretDecryptor secretDecryptor,
-                          final Cache cache) {
+                          final Cache cache,
+                          final HealthAnalyzerFactory healthAnalyzerFactory) {
         this.repoEntityRepository = repoEntityRepository;
         this.analyzerFactory = analyzerFactory;
         this.secretDecryptor = secretDecryptor;
         this.cache = cache;
+        this.healthAnalyzerFactory = healthAnalyzerFactory;
     }
 
     @Override
@@ -75,6 +82,20 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         // version and other qualifiers. Some analyzers require the version.
         final PackageURL purl = parsePurlCoordinates(component.getPurl());
 
+        AnalysisResult.Builder resultBuilder = AnalysisResult.newBuilder()
+                .setComponent(component);
+
+        // Handle HEALTH commands
+        if (analysisCommand.getFetchMeta().equals(FetchMeta.FETCH_META_HEALTH)) {
+            resultBuilder = performHealthMeta(purl, analysisCommand, resultBuilder);
+            context().forward(record
+                    .withValue(resultBuilder.build())
+                    .withTimestamp(context().currentSystemTimeMs())
+            );
+            return;
+        }
+
+        // Handle LATEST_VERSION and INTEGRITY_DATA commands
         final Optional<IMetaAnalyzer> optionalAnalyzer = analyzerFactory.createAnalyzer(purl);
         if (optionalAnalyzer.isEmpty()) {
             LOGGER.debug("No analyzer is capable of analyzing {}", purl);
@@ -86,9 +107,6 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
 
         final IMetaAnalyzer analyzer = optionalAnalyzer.get();
         var applicableRepositories = getApplicableRepositories(analyzer.supportedRepositoryType());
-
-        AnalysisResult.Builder resultBuilder = AnalysisResult.newBuilder()
-                .setComponent(component);
 
         if (analysisCommand.getFetchMeta().equals(FetchMeta.FETCH_META_LATEST_VERSION)
                 || analysisCommand.getFetchMeta().equals(FetchMeta.FETCH_META_INTEGRITY_DATA_AND_LATEST_VERSION)) {
@@ -117,6 +135,36 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         context().forward(record
                 .withValue(resultBuilder.build())
                 .withTimestamp(context().currentSystemTimeMs()));
+    }
+
+    private AnalysisResult.Builder performHealthMeta(PackageURL purl, AnalysisCommand analysisCommand, AnalysisResult.Builder resultBuilder) {
+        List<IHealthMetaAnalyzer> analyzers = healthAnalyzerFactory.createApplicableAnalyzers(purl);
+
+        // don't have a fitting analyzer for this package
+        if (analyzers.isEmpty()) {
+            LOGGER.debug("No health analyzer is capable of analyzing {}", purl);
+            return resultBuilder;
+        }
+
+        // check cache
+        MetaAnalyzerCacheKey chacheKey = new MetaAnalyzerCacheKey("HealthMetadata", purl.canonicalize(), null);
+        var cachedResult = getCachedResult(chacheKey);
+
+        if (cachedResult.isPresent() && cachedResult.get().hasHealthMeta()) {
+            LOGGER.debug("Cache hit for health metadata (purl: {})", purl.canonicalize());
+            resultBuilder.setHealthMeta(cachedResult.get().getHealthMeta());
+            return resultBuilder;
+        }
+
+        LOGGER.debug("Cache miss for health metadata (purl: {})", purl.canonicalize());
+
+        // Try each analyzer in turn
+        HealthMeta.Builder healthMetaBuilder = HealthMeta.newBuilder();
+        for (IHealthMetaAnalyzer analyzer : analyzers) {
+            // todo implement
+        }
+
+        throw new NotImplementedException();
     }
 
     private List<Repository> getApplicableRepositories(final RepositoryType repositoryType) {
