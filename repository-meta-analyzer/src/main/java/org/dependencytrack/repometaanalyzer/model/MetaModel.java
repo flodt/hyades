@@ -22,7 +22,6 @@ import org.dependencytrack.persistence.model.Component;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
 public class MetaModel implements Serializable {
 
@@ -30,26 +29,7 @@ public class MetaModel implements Serializable {
     private String latestVersion;
     private Date publishedTimestamp;
 
-    // Repository and Project (Health) Metadata
-    private Integer stars;
-    private Integer forks;
-    private Integer contributors;
-    private Float commitFrequency;
-    private Integer openIssues;
-    private Integer openPRs;
-    private String lastCommitDate;
-    private Integer busFactor;
-    private Boolean hasReadme;
-    private Boolean hasCodeOfConduct;
-    private Boolean hasSecurityPolicy;
-    private Integer dependents;
-    private Integer versions;
-    private Integer files;
-
-    // OpenSSF Scorecard: indivual checks, overall score and reference version
-    private List<ScoreCardCheck> scoreCardChecks;
-    private Float scoreCardScore;
-    private String scoreCardReferenceVersion;
+    private ComponentHealthMeta componentHealthMeta;
 
     public MetaModel(){
     }
@@ -77,143 +57,11 @@ public class MetaModel implements Serializable {
         this.publishedTimestamp = publishedTimestamp;
     }
 
-    public void setComponent(Component component) {
-        this.component = component;
+    public ComponentHealthMeta getComponentHealthMeta() {
+        return componentHealthMeta;
     }
 
-    public Integer getStars() {
-        return stars;
-    }
-
-    public void setStars(Integer stars) {
-        this.stars = stars;
-    }
-
-    public Integer getForks() {
-        return forks;
-    }
-
-    public void setForks(Integer forks) {
-        this.forks = forks;
-    }
-
-    public Integer getContributors() {
-        return contributors;
-    }
-
-    public void setContributors(Integer contributors) {
-        this.contributors = contributors;
-    }
-
-    public Float getCommitFrequency() {
-        return commitFrequency;
-    }
-
-    public void setCommitFrequency(Float commitFrequency) {
-        this.commitFrequency = commitFrequency;
-    }
-
-    public Integer getOpenIssues() {
-        return openIssues;
-    }
-
-    public void setOpenIssues(Integer openIssues) {
-        this.openIssues = openIssues;
-    }
-
-    public Integer getOpenPRs() {
-        return openPRs;
-    }
-
-    public void setOpenPRs(Integer openPRs) {
-        this.openPRs = openPRs;
-    }
-
-    public String getLastCommitDate() {
-        return lastCommitDate;
-    }
-
-    public void setLastCommitDate(String lastCommitDate) {
-        this.lastCommitDate = lastCommitDate;
-    }
-
-    public Integer getBusFactor() {
-        return busFactor;
-    }
-
-    public void setBusFactor(Integer busFactor) {
-        this.busFactor = busFactor;
-    }
-
-    public Boolean getHasReadme() {
-        return hasReadme;
-    }
-
-    public void setHasReadme(Boolean hasReadme) {
-        this.hasReadme = hasReadme;
-    }
-
-    public Boolean getHasCodeOfConduct() {
-        return hasCodeOfConduct;
-    }
-
-    public void setHasCodeOfConduct(Boolean hasCodeOfConduct) {
-        this.hasCodeOfConduct = hasCodeOfConduct;
-    }
-
-    public Boolean getHasSecurityPolicy() {
-        return hasSecurityPolicy;
-    }
-
-    public void setHasSecurityPolicy(Boolean hasSecurityPolicy) {
-        this.hasSecurityPolicy = hasSecurityPolicy;
-    }
-
-    public Integer getDependents() {
-        return dependents;
-    }
-
-    public void setDependents(Integer dependents) {
-        this.dependents = dependents;
-    }
-
-    public Integer getVersions() {
-        return versions;
-    }
-
-    public void setVersions(Integer versions) {
-        this.versions = versions;
-    }
-
-    public Integer getFiles() {
-        return files;
-    }
-
-    public void setFiles(Integer files) {
-        this.files = files;
-    }
-
-    public List<ScoreCardCheck> getScoreCardChecks() {
-        return scoreCardChecks;
-    }
-
-    public void setScoreCardChecks(List<ScoreCardCheck> scoreCardChecks) {
-        this.scoreCardChecks = scoreCardChecks;
-    }
-
-    public Float getScoreCardScore() {
-        return scoreCardScore;
-    }
-
-    public void setScoreCardScore(Float scoreCardScore) {
-        this.scoreCardScore = scoreCardScore;
-    }
-
-    public String getScoreCardReferenceVersion() {
-        return scoreCardReferenceVersion;
-    }
-
-    public void setScoreCardReferenceVersion(String scoreCardReferenceVersion) {
-        this.scoreCardReferenceVersion = scoreCardReferenceVersion;
+    public void setComponentHealthMeta(ComponentHealthMeta componentHealthMeta) {
+        this.componentHealthMeta = componentHealthMeta;
     }
 }
