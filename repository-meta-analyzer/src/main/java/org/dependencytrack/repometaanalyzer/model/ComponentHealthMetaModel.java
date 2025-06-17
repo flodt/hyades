@@ -20,9 +20,10 @@ package org.dependencytrack.repometaanalyzer.model;
 
 import org.dependencytrack.persistence.model.Component;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ComponentHealthMetaModel {
+public class ComponentHealthMetaModel implements Serializable {
     private final Component component;
 
     // Repository and Project (Health) Metadata
@@ -158,11 +159,11 @@ public class ComponentHealthMetaModel {
         this.files = files;
     }
 
-    public Boolean getRepoArchived() {
+    public Boolean getIsRepoArchived() {
         return isRepoArchived;
     }
 
-    public void setRepoArchived(Boolean repoArchived) {
+    public void setIsRepoArchived(Boolean repoArchived) {
         isRepoArchived = repoArchived;
     }
 
@@ -212,5 +213,32 @@ public class ComponentHealthMetaModel {
                 ", scoreCardScore=" + scoreCardScore +
                 ", scoreCardReferenceVersion='" + scoreCardReferenceVersion + '\'' +
                 '}';
+    }
+
+    /**
+     * Merges this health meta information with the data provided by the other ComponentHealthMetaModel.
+     * If present, the information in the other model takes precedence.
+     * This object is modified in-place.
+     *
+     * @param other the other meta model to merge into this one
+     */
+    public void mergeFrom(ComponentHealthMetaModel other) {
+        if (other.stars != null) this.stars = other.stars;
+        if (other.forks != null) this.forks = other.forks;
+        if (other.contributors != null) this.contributors = other.contributors;
+        if (other.commitFrequency != null) this.commitFrequency = other.commitFrequency;
+        if (other.openIssues != null) this.openIssues = other.openIssues;
+        if (other.openPRs != null) this.openPRs = other.openPRs;
+        if (other.lastCommitDate != null) this.lastCommitDate = other.lastCommitDate;
+        if (other.busFactor != null) this.busFactor = other.busFactor;
+        if (other.hasReadme != null) this.hasReadme = other.hasReadme;
+        if (other.hasCodeOfConduct != null) this.hasCodeOfConduct = other.hasCodeOfConduct;
+        if (other.hasSecurityPolicy != null) this.hasSecurityPolicy = other.hasSecurityPolicy;
+        if (other.dependents != null) this.dependents = other.dependents;
+        if (other.files != null) this.files = other.files;
+        if (other.isRepoArchived != null) this.isRepoArchived = other.isRepoArchived;
+        if (other.scoreCardChecks != null) this.scoreCardChecks = other.scoreCardChecks;
+        if (other.scoreCardScore != null) this.scoreCardScore = other.scoreCardScore;
+        if (other.scoreCardReferenceVersion != null) this.scoreCardReferenceVersion = other.scoreCardReferenceVersion;
     }
 }

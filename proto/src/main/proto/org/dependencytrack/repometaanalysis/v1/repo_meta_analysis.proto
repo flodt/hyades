@@ -42,9 +42,7 @@ message AnalysisResult {
 }
 
 message HealthMeta {
-  // TODO: adapt this when it's clear what we need
-  /*
-  optional int32 starts = 1;
+  optional int32 stars = 1;
   optional int32 forks = 2;
   optional int32 contributors = 3;
   optional float commitFrequency = 4;
@@ -56,10 +54,8 @@ message HealthMeta {
   optional bool hasCodeOfConduct = 10;
   optional bool hasSecurityPolicy = 11;
   optional int32 dependents = 12;
-  optional int32 versions = 13;
-  optional int32 files = 14;
-  */
-
+  optional int32 files = 13;
+  optional bool isRepoArchived = 14;
   repeated ScoreCardCheck scoreCardChecks = 15;
   optional float scoreCardScore = 16;
   optional string scoreCardReferenceVersion = 17;

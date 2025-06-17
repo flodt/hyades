@@ -34,6 +34,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
 import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
+import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.IntegrityMeta;
 import org.dependencytrack.repometaanalyzer.model.MetaAnalyzerCacheKey;
 import org.dependencytrack.repometaanalyzer.model.MetaModel;
@@ -158,11 +159,42 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
 
         LOGGER.debug("Cache miss for health metadata (purl: {})", purl.canonicalize());
 
-        // Try each analyzer in turn
+        // Try each analyzer in turn and merge the results
         HealthMeta.Builder healthMetaBuilder = HealthMeta.newBuilder();
-        for (IHealthMetaAnalyzer analyzer : analyzers) {
-            // todo implement
-        }
+
+        // We also use the legacy data models here for consistency with the other analyzers.
+        // This should also make it easier to swap out the communication infrastructure later on.
+        Component component = new Component();
+        component.setPurl(analysisCommand.getComponent().getPurl());
+
+        ComponentHealthMetaModel mergedResults = new ComponentHealthMetaModel(component);
+        analyzers
+                .stream()
+                .map(analyzer -> analyzer.analyze(purl))
+                .forEach(mergedResults::mergeFrom);
+
+        LOGGER.debug("Ran {} analyzers on purl {}", analyzers.size(), purl.canonicalize());
+
+        // Build the proto result based on all attributes of ComponentHealthMetaModel
+        Optional.ofNullable(mergedResults.getStars()).ifPresent(healthMetaBuilder::setStars);
+        Optional.ofNullable(mergedResults.getForks()).ifPresent(healthMetaBuilder::setForks);
+        Optional.ofNullable(mergedResults.getContributors()).ifPresent(healthMetaBuilder::setContributors);
+        Optional.ofNullable(mergedResults.getCommitFrequency()).ifPresent(healthMetaBuilder::setCommitFrequency);
+        Optional.ofNullable(mergedResults.getOpenIssues()).ifPresent(healthMetaBuilder::setOpenIssues);
+        Optional.ofNullable(mergedResults.getOpenPRs()).ifPresent(healthMetaBuilder::setOpenPRs);
+        Optional.ofNullable(mergedResults.getLastCommitDate()).ifPresent(healthMetaBuilder::setLastCommitDate);
+        Optional.ofNullable(mergedResults.getBusFactor()).ifPresent(healthMetaBuilder::setBusFactor);
+        Optional.ofNullable(mergedResults.getHasReadme()).ifPresent(healthMetaBuilder::setHasReadme);
+        Optional.ofNullable(mergedResults.getHasCodeOfConduct()).ifPresent(healthMetaBuilder::setHasCodeOfConduct);
+        Optional.ofNullable(mergedResults.getHasSecurityPolicy()).ifPresent(healthMetaBuilder::setHasSecurityPolicy);
+        Optional.ofNullable(mergedResults.getDependents()).ifPresent(healthMetaBuilder::setDependents);
+        Optional.ofNullable(mergedResults.getFiles()).ifPresent(healthMetaBuilder::setFiles);
+        Optional.ofNullable(mergedResults.getIsRepoArchived()).ifPresent(healthMetaBuilder::setIsRepoArchived);
+        Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);
+        Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
+
+        // TODO: build scorecard proto and add to result
+        // TODO: then continue with impl of deps.dev fetcher
 
         throw new NotImplementedException();
     }

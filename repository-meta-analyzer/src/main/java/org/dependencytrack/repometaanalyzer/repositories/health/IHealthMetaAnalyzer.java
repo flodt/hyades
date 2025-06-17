@@ -20,7 +20,6 @@ package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 
 public interface IHealthMetaAnalyzer {
@@ -46,8 +45,8 @@ public interface IHealthMetaAnalyzer {
 
     /**
      * Analyzes the component and returns the health metadata
-     * @param component the component to analyze
+     * @param packageURL the PURL of the component to analyze
      * @return the health metadata retrieved for the component
      */
-    ComponentHealthMetaModel analyze(Component component);
+    ComponentHealthMetaModel analyze(PackageURL packageURL);
 }

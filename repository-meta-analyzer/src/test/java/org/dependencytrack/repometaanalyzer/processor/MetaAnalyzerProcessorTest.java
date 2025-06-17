@@ -50,6 +50,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.proto.repometaanalysis.v1.Component;
 import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.serde.KafkaPurlSerde;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -92,6 +93,9 @@ class MetaAnalyzerProcessorTest {
     RepositoryAnalyzerFactory analyzerFactory;
 
     @Inject
+    HealthAnalyzerFactory healthAnalyzerFactory;
+
+    @Inject
     EntityManager entityManager;
 
     @Inject
@@ -103,7 +107,9 @@ class MetaAnalyzerProcessorTest {
 
     @BeforeEach
     void beforeEach() {
-        final var processorSupplier = new MetaAnalyzerProcessorSupplier(repoEntityRepository, analyzerFactory, secretDecryptor, cache);
+        final var processorSupplier = new MetaAnalyzerProcessorSupplier(
+                repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthAnalyzerFactory
+        );
 
         final var valueSerde = new KafkaProtobufSerde<>(AnalysisCommand.parser());
         final var purlSerde = new KafkaPurlSerde();
