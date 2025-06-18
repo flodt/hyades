@@ -25,6 +25,7 @@ import com.github.tomakehurst.wiremock.http.Body;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -49,14 +50,18 @@ import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.proto.repometaanalysis.v1.Component;
 import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
+import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
+import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.serde.KafkaPurlSerde;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,6 +70,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.head;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @TestProfile(MetaAnalyzerProcessorTest.TestProfile.class)
@@ -92,7 +100,7 @@ class MetaAnalyzerProcessorTest {
     @Inject
     RepositoryAnalyzerFactory analyzerFactory;
 
-    @Inject
+    @InjectMock
     HealthAnalyzerFactory healthAnalyzerFactory;
 
     @Inject
@@ -384,5 +392,61 @@ class MetaAnalyzerProcessorTest {
                     assertThat(integrityMeta.getMd5()).isEqualTo("md5hash");
                     assertThat(integrityMeta.getMetaSourceUrl()).isEqualTo("http://localhost:1080/@apollo/federation/-/@apollo/federation-0.19.1.tgz");
                 });
+    }
+
+    @Test
+    void testHealthFetchMetaWithMerge() throws Exception {
+        // Return two fake analyzers from HealthAnalyzerFactory whose results should be merged
+        IHealthMetaAnalyzer fakeAnalyzer1 = mock(IHealthMetaAnalyzer.class);
+        IHealthMetaAnalyzer fakeAnalyzer2 = mock(IHealthMetaAnalyzer.class);
+        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+                .thenReturn(List.of(fakeAnalyzer1, fakeAnalyzer2));
+
+        // Setup dummy values
+        org.dependencytrack.persistence.model.Component dummyComponent
+                = new org.dependencytrack.persistence.model.Component();
+        dummyComponent.setPurl(TEST_PURL_JACKSON_BIND);
+
+        final int TEST_STARS = 42;
+        final int TEST_BUS_FACTOR = 9000;
+        final int TEST_CONTRIBUTORS = 9001;
+        final float TEST_SCORECARD_SCORE = 10.0f;
+
+        ComponentHealthMetaModel healthMetaModel1 = new ComponentHealthMetaModel(dummyComponent);
+        healthMetaModel1.setStars(TEST_STARS);
+        healthMetaModel1.setBusFactor(TEST_BUS_FACTOR);
+        healthMetaModel1.setContributors(TEST_CONTRIBUTORS);
+        ComponentHealthMetaModel healthMetaModel2 = new ComponentHealthMetaModel(dummyComponent);
+        healthMetaModel2.setScoreCardScore(TEST_SCORECARD_SCORE);
+
+        when(fakeAnalyzer1.analyze(any(PackageURL.class))).thenReturn(healthMetaModel1);
+        when(fakeAnalyzer2.analyze(any(PackageURL.class))).thenReturn(healthMetaModel2);
+
+        // Build AnalysisCommand
+        AnalysisCommand command = AnalysisCommand.newBuilder()
+                .setComponent(
+                        Component.newBuilder()
+                                .setPurl(TEST_PURL_JACKSON_BIND)
+                                .build()
+                )
+                .setFetchMeta(FetchMeta.FETCH_META_HEALTH)
+                .build();
+
+
+        // Pipe into the input topic
+        inputTopic.pipeInput(new TestRecord<>(new PackageURL(TEST_PURL_JACKSON_BIND), command));
+
+        // Assertions on output
+        assertThat(outputTopic.getQueueSize()).isEqualTo(1);
+        AnalysisResult result = outputTopic.readKeyValuesToList().getFirst().value;
+
+        HealthMeta expected = HealthMeta
+                .newBuilder()
+                .setStars(TEST_STARS)
+                .setBusFactor(TEST_BUS_FACTOR)
+                .setContributors(TEST_CONTRIBUTORS)
+                .setScoreCardScore(TEST_SCORECARD_SCORE)
+                .build();
+        assertThat(result.getHealthMeta()).isEqualTo(expected);
     }
 }
