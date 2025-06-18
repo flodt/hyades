@@ -29,7 +29,11 @@ import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.persistence.repository.RepoEntityRepository;
-import org.dependencytrack.proto.repometaanalysis.v1.*;
+import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
+import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
+import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
+import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
+import org.dependencytrack.proto.repometaanalysis.v1.ScoreCardCheck;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.IntegrityMeta;
 import org.dependencytrack.repometaanalyzer.model.MetaAnalyzerCacheKey;
@@ -41,6 +45,7 @@ import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnaly
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -190,7 +195,8 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
 
         // Build scorecard proto and add to result
-        List<ScoreCardCheck> scoreCardChecks = mergedResults.getScoreCardChecks()
+        List<ScoreCardCheck> scoreCardChecks = Optional.ofNullable(mergedResults.getScoreCardChecks())
+                .orElse(Collections.emptyList())
                 .stream()
                 .map(scoreCardCheck -> {
                     ScoreCardCheck.Builder scoreCardCheckBuilder = ScoreCardCheck.newBuilder();
