@@ -22,7 +22,6 @@ import com.github.packageurl.PackageURL;
 import com.google.protobuf.Timestamp;
 import io.quarkus.cache.Cache;
 import io.quarkus.narayana.jta.QuarkusTransaction;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.streams.processor.api.ContextualFixedKeyProcessor;
 import org.apache.kafka.streams.processor.api.FixedKeyRecord;
 import org.dependencytrack.common.SecretDecryptor;
@@ -30,10 +29,7 @@ import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.persistence.repository.RepoEntityRepository;
-import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
-import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
-import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
-import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
+import org.dependencytrack.proto.repometaanalysis.v1.*;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.IntegrityMeta;
 import org.dependencytrack.repometaanalyzer.model.MetaAnalyzerCacheKey;
@@ -193,10 +189,26 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);
         Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
 
-        // TODO: build scorecard proto and add to result
-        // TODO: then continue with impl of deps.dev fetcher
+        // Build scorecard proto and add to result
+        List<ScoreCardCheck> scoreCardChecks = mergedResults.getScoreCardChecks()
+                .stream()
+                .map(scoreCardCheck -> {
+                    ScoreCardCheck.Builder scoreCardCheckBuilder = ScoreCardCheck.newBuilder();
+                    Optional.ofNullable(scoreCardCheck.getName()).ifPresent(scoreCardCheckBuilder::setName);
+                    Optional.ofNullable(scoreCardCheck.getDescription()).ifPresent(scoreCardCheckBuilder::setDescription);
+                    Optional.ofNullable(scoreCardCheck.getScore()).ifPresent(scoreCardCheckBuilder::setScore);
+                    Optional.ofNullable(scoreCardCheck.getReason()).ifPresent(scoreCardCheckBuilder::setReason);
+                    Optional.ofNullable(scoreCardCheck.getDetails()).ifPresent(scoreCardCheckBuilder::addAllDetails);
+                    Optional.ofNullable(scoreCardCheck.getDocumentationUrl()).ifPresent(scoreCardCheckBuilder::setDocumentationUrl);
+                    return scoreCardCheckBuilder.build();
+                })
+                .toList();
+        healthMetaBuilder.addAllScoreCardChecks(scoreCardChecks);
 
-        throw new NotImplementedException();
+        // Finalize
+        resultBuilder.setHealthMeta(healthMetaBuilder.build());
+
+        return resultBuilder;
     }
 
     private List<Repository> getApplicableRepositories(final RepositoryType repositoryType) {
