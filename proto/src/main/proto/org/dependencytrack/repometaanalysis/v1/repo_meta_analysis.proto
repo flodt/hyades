@@ -38,7 +38,19 @@ message AnalysisResult {
   // Integrity metadata of the component.
   optional IntegrityMeta integrity_meta = 5;
 
+  // Health metadata of the component
   optional HealthMeta health_meta = 6;
+}
+
+message IntegrityMeta {
+  optional string md5 = 1;
+  optional string sha1 = 2;
+  optional string sha256 = 3;
+  optional string sha512 = 4;
+  // When the component current version last modified.
+  optional google.protobuf.Timestamp current_version_last_modified = 5;
+  // Complete URL to fetch integrity metadata of the component.
+  optional string meta_source_url = 6;
 }
 
 message HealthMeta {
@@ -79,15 +91,4 @@ message Component {
   // Internal components will only be looked up in internal repositories.
   optional bool internal = 2;
   optional string uuid = 3;
-}
-
-message IntegrityMeta {
-  optional string md5 = 1;
-  optional string sha1 = 2;
-  optional string sha256 = 3;
-  optional string sha512 = 4;
-  // When the component current version last modified.
-  optional google.protobuf.Timestamp current_version_last_modified = 5;
-  // Complete URL to fetch integrity metadata of the component.
-  optional string meta_source_url = 6;
 }
