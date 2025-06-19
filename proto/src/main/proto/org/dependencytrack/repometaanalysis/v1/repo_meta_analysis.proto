@@ -59,6 +59,7 @@ message HealthMeta {
   repeated ScoreCardCheck scoreCardChecks = 15;
   optional float scoreCardScore = 16;
   optional string scoreCardReferenceVersion = 17;
+  optional google.protobuf.Timestamp scoreCardTimestamp = 18;
 }
 
 message ScoreCardCheck {

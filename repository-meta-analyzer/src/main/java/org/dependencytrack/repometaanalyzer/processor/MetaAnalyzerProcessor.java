@@ -191,10 +191,17 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getDependents()).ifPresent(healthMetaBuilder::setDependents);
         Optional.ofNullable(mergedResults.getFiles()).ifPresent(healthMetaBuilder::setFiles);
         Optional.ofNullable(mergedResults.getIsRepoArchived()).ifPresent(healthMetaBuilder::setIsRepoArchived);
-        Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);
-        Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
 
         // Build scorecard proto and add to result
+        Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);
+        Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
+        Optional.ofNullable(mergedResults.getScoreCardTimestamp())
+                .map(instant -> Timestamp.newBuilder()
+                        .setSeconds(instant.getEpochSecond())
+                        .setNanos(instant.getNano())
+                        .build())
+                .ifPresent(healthMetaBuilder::setScoreCardTimestamp);
+
         List<ScoreCardCheck> scoreCardChecks = Optional.ofNullable(mergedResults.getScoreCardChecks())
                 .orElse(Collections.emptyList())
                 .stream()

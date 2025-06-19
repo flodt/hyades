@@ -21,6 +21,7 @@ package org.dependencytrack.repometaanalyzer.model;
 import org.dependencytrack.persistence.model.Component;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.List;
 
 public class ComponentHealthMetaModel implements Serializable {
@@ -42,10 +43,12 @@ public class ComponentHealthMetaModel implements Serializable {
     private Integer files;
     private Boolean isRepoArchived;
 
-    // OpenSSF Scorecard: indivual checks, overall score and reference version
+    // OpenSSF Scorecard: individual checks, overall score, reference version, and timestamp
     private List<ScoreCardCheck> scoreCardChecks;
     private Float scoreCardScore;
     private String scoreCardReferenceVersion;
+
+    private Instant scoreCardTimestamp;
 
     public ComponentHealthMetaModel(Component component) {
         this.component = component;
@@ -191,9 +194,17 @@ public class ComponentHealthMetaModel implements Serializable {
         this.scoreCardReferenceVersion = scoreCardReferenceVersion;
     }
 
+    public Instant getScoreCardTimestamp() {
+        return scoreCardTimestamp;
+    }
+
+    public void setScoreCardTimestamp(Instant scoreCardTimestamp) {
+        this.scoreCardTimestamp = scoreCardTimestamp;
+    }
+
     @Override
     public String toString() {
-        return "ComponentHealthMeta{" +
+        return "ComponentHealthMetaModel{" +
                 "component=" + component +
                 ", stars=" + stars +
                 ", forks=" + forks +
@@ -212,6 +223,7 @@ public class ComponentHealthMetaModel implements Serializable {
                 ", scoreCardChecks=" + scoreCardChecks +
                 ", scoreCardScore=" + scoreCardScore +
                 ", scoreCardReferenceVersion='" + scoreCardReferenceVersion + '\'' +
+                ", scoreCardTimestamp=" + scoreCardTimestamp +
                 '}';
     }
 
@@ -240,5 +252,6 @@ public class ComponentHealthMetaModel implements Serializable {
         if (other.scoreCardChecks != null) this.scoreCardChecks = other.scoreCardChecks;
         if (other.scoreCardScore != null) this.scoreCardScore = other.scoreCardScore;
         if (other.scoreCardReferenceVersion != null) this.scoreCardReferenceVersion = other.scoreCardReferenceVersion;
+        if (other.scoreCardTimestamp != null) this.scoreCardTimestamp = other.scoreCardTimestamp;
     }
 }
