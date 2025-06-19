@@ -23,6 +23,8 @@ import com.github.packageurl.PackageURL;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.http.Body;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.Timestamps;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
 import io.quarkus.test.InjectMock;
@@ -52,6 +54,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.Component;
 import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
 import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
+import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
@@ -61,6 +64,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -239,7 +245,7 @@ class MetaAnalyzerProcessorTest {
                                         {
                                             "latest": "v6.6.6"
                                         }
-                                         """.getBytes(),
+                                        """.getBytes(),
                                 new ContentTypeHeader("application/json"))).withStatus(HttpStatus.SC_OK)));
 
         wireMockServer1.stubFor(head(urlPathEqualTo("/@apollo/federation/-/@apollo/federation-0.19.1.tgz"))
@@ -294,7 +300,7 @@ class MetaAnalyzerProcessorTest {
                                         {
                                             "type": "version"
                                         }
-                                         """.getBytes(),
+                                        """.getBytes(),
                                 new ContentTypeHeader("application/json")))
                         .withStatus(HttpStatus.SC_OK)));
 
@@ -304,7 +310,7 @@ class MetaAnalyzerProcessorTest {
                                         {
                                             "latest": "v6.6.6"
                                         }
-                                         """.getBytes(),
+                                        """.getBytes(),
                                 new ContentTypeHeader("application/json")))
                         .withStatus(HttpStatus.SC_OK)));
         UUID uuid = UUID.randomUUID();
@@ -348,7 +354,7 @@ class MetaAnalyzerProcessorTest {
                         .withResponseBody(Body.ofBinaryOrText("""
                                         {
                                         }
-                                         """.getBytes(),
+                                        """.getBytes(),
                                 new ContentTypeHeader("application/json")))
                         .withStatus(HttpStatus.SC_OK)));
 
@@ -363,7 +369,7 @@ class MetaAnalyzerProcessorTest {
                                         {
                                             "latest": "v6.6.6"
                                         }
-                                         """.getBytes(),
+                                        """.getBytes(),
                                 new ContentTypeHeader("application/json")))
                         .withStatus(HttpStatus.SC_OK)));
         UUID uuid = UUID.randomUUID();
@@ -392,6 +398,157 @@ class MetaAnalyzerProcessorTest {
                     assertThat(integrityMeta.getMd5()).isEqualTo("md5hash");
                     assertThat(integrityMeta.getMetaSourceUrl()).isEqualTo("http://localhost:1080/@apollo/federation/-/@apollo/federation-0.19.1.tgz");
                 });
+    }
+
+    @Test
+    void testHealthFetchMetaNoAnalyzer() throws Exception {
+        // Return two fake analyzers from HealthAnalyzerFactory whose results should be merged
+        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+                .thenReturn(Collections.emptyList());
+
+        // Build AnalysisCommand
+        AnalysisCommand command = AnalysisCommand.newBuilder()
+                .setComponent(
+                        Component.newBuilder()
+                                .setPurl(TEST_PURL_JACKSON_BIND)
+                                .build()
+                )
+                .setFetchMeta(FetchMeta.FETCH_META_HEALTH)
+                .build();
+
+
+        // Pipe into the input topic
+        inputTopic.pipeInput(new TestRecord<>(new PackageURL(TEST_PURL_JACKSON_BIND), command));
+
+        // Assertions on output
+        assertThat(outputTopic.getQueueSize()).isEqualTo(1);
+        AnalysisResult result = outputTopic.readKeyValuesToList().getFirst().value;
+
+        HealthMeta expected = HealthMeta
+                .newBuilder()
+                .build();
+        assertThat(result.getHealthMeta()).isEqualTo(expected);
+    }
+
+    @Test
+    void testHealthFetchMetaAllFields() throws Exception {
+        // Testing Constants
+        final int EXPECTED_STARS = 42;
+        final int EXPECTED_FORKS = 17;
+        final int EXPECTED_CONTRIBUTORS = 5;
+        final float EXPECTED_COMMIT_FREQUENCY = 3.7f;
+        final int EXPECTED_OPEN_ISSUES = 13;
+        final int EXPECTED_OPEN_PRS = 4;
+        final String EXPECTED_LAST_COMMIT_DATE = "2025-06-18T12:34:56Z";
+        final int EXPECTED_BUS_FACTOR = 2;
+        final boolean EXPECTED_HAS_README = true;
+        final boolean EXPECTED_HAS_COC = false;
+        final boolean EXPECTED_HAS_SECURITY_POLICY = true;
+        final int EXPECTED_DEPENDENTS = 123;
+        final int EXPECTED_FILES = 256;
+        final boolean EXPECTED_IS_REPO_ARCHIVED = false;
+        final String CHECK_NAME = "ci-checked";  // dummy value
+        final String CHECK_DESCRIPTION = "CI runs on each PR";  // dummy value
+        final float CHECK_SCORE = 0.9f;
+        final String CHECK_REASON = "All builds green";  // dummy value
+        final List<String> CHECK_DETAILS = Arrays.asList("build-1", "build-2");
+        final String CHECK_DOC_URL = "https://ossf.io/scorecard/docs/checks#ci-checked";  // dummy URL
+
+        final float EXPECTED_SCORECARD_SCORE = 8.5f;
+        final String EXPECTED_SCORECARD_VERSION = "v4.2.0";
+        final String TEST_TIMESTAMP = "2025-06-19T00:00:00Z";
+        final Instant EXPECTED_SCORECARD_INSTANT = Instant.parse(TEST_TIMESTAMP);
+        final Timestamp EXPECTED_SCORECARD_PROTO_TS = Timestamps.parse(TEST_TIMESTAMP);
+
+        // Mock our factory with a single analyzer that returns all of the above
+        IHealthMetaAnalyzer fakeAnalyzer = mock(IHealthMetaAnalyzer.class);
+        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+                .thenReturn(Collections.singletonList(fakeAnalyzer));
+
+        // Component setup
+        org.dependencytrack.persistence.model.Component dummyComponent =
+                new org.dependencytrack.persistence.model.Component();
+        dummyComponent.setPurl(TEST_PURL_JACKSON_BIND);
+
+        // Fully populated model
+        ComponentHealthMetaModel healthMetaModel = new ComponentHealthMetaModel(dummyComponent);
+        healthMetaModel.setStars(EXPECTED_STARS);
+        healthMetaModel.setForks(EXPECTED_FORKS);
+        healthMetaModel.setContributors(EXPECTED_CONTRIBUTORS);
+        healthMetaModel.setCommitFrequency(EXPECTED_COMMIT_FREQUENCY);
+        healthMetaModel.setOpenIssues(EXPECTED_OPEN_ISSUES);
+        healthMetaModel.setOpenPRs(EXPECTED_OPEN_PRS);
+        healthMetaModel.setLastCommitDate(EXPECTED_LAST_COMMIT_DATE);
+        healthMetaModel.setBusFactor(EXPECTED_BUS_FACTOR);
+        healthMetaModel.setHasReadme(EXPECTED_HAS_README);
+        healthMetaModel.setHasCodeOfConduct(EXPECTED_HAS_COC);
+        healthMetaModel.setHasSecurityPolicy(EXPECTED_HAS_SECURITY_POLICY);
+        healthMetaModel.setDependents(EXPECTED_DEPENDENTS);
+        healthMetaModel.setFiles(EXPECTED_FILES);
+        healthMetaModel.setIsRepoArchived(EXPECTED_IS_REPO_ARCHIVED);
+
+        ScoreCardCheck modelCheck = new ScoreCardCheck();
+        modelCheck.setName(CHECK_NAME);
+        modelCheck.setDescription(CHECK_DESCRIPTION);
+        modelCheck.setScore(CHECK_SCORE);
+        modelCheck.setReason(CHECK_REASON);
+        modelCheck.setDetails(CHECK_DETAILS);
+        modelCheck.setDocumentationUrl(CHECK_DOC_URL);
+        healthMetaModel.setScoreCardChecks(Collections.singletonList(modelCheck));
+
+        healthMetaModel.setScoreCardScore(EXPECTED_SCORECARD_SCORE);
+        healthMetaModel.setScoreCardReferenceVersion(EXPECTED_SCORECARD_VERSION);
+        healthMetaModel.setScoreCardTimestamp(EXPECTED_SCORECARD_INSTANT);
+
+        when(fakeAnalyzer.analyze(any(PackageURL.class)))
+                .thenReturn(healthMetaModel);
+
+        // Send into input topic
+        AnalysisCommand command = AnalysisCommand.newBuilder()
+                .setComponent(Component.newBuilder()
+                        .setPurl(TEST_PURL_JACKSON_BIND)
+                        .build())
+                .setFetchMeta(FetchMeta.FETCH_META_HEALTH)
+                .build();
+
+        inputTopic.pipeInput(new TestRecord<>(new PackageURL(TEST_PURL_JACKSON_BIND), command));
+
+        // Retrieve result
+        assertThat(outputTopic.getQueueSize()).isEqualTo(1);
+        AnalysisResult result = outputTopic.readKeyValuesToList().getFirst().value;
+        HealthMeta actual = result.getHealthMeta();
+
+        // --- Build expected proto ---
+        HealthMeta expected = HealthMeta.newBuilder()
+                .setStars(EXPECTED_STARS)
+                .setForks(EXPECTED_FORKS)
+                .setContributors(EXPECTED_CONTRIBUTORS)
+                .setCommitFrequency(EXPECTED_COMMIT_FREQUENCY)
+                .setOpenIssues(EXPECTED_OPEN_ISSUES)
+                .setOpenPRs(EXPECTED_OPEN_PRS)
+                .setLastCommitDate(EXPECTED_LAST_COMMIT_DATE)
+                .setBusFactor(EXPECTED_BUS_FACTOR)
+                .setHasReadme(EXPECTED_HAS_README)
+                .setHasCodeOfConduct(EXPECTED_HAS_COC)
+                .setHasSecurityPolicy(EXPECTED_HAS_SECURITY_POLICY)
+                .setDependents(EXPECTED_DEPENDENTS)
+                .setFiles(EXPECTED_FILES)
+                .setIsRepoArchived(EXPECTED_IS_REPO_ARCHIVED)
+                .addScoreCardChecks(
+                        org.dependencytrack.proto.repometaanalysis.v1.ScoreCardCheck.newBuilder()
+                                .setName(CHECK_NAME)
+                                .setDescription(CHECK_DESCRIPTION)
+                                .setScore(CHECK_SCORE)
+                                .setReason(CHECK_REASON)
+                                .addAllDetails(CHECK_DETAILS)
+                                .setDocumentationUrl(CHECK_DOC_URL)
+                )
+                .setScoreCardScore(EXPECTED_SCORECARD_SCORE)
+                .setScoreCardReferenceVersion(EXPECTED_SCORECARD_VERSION)
+                .setScoreCardTimestamp(EXPECTED_SCORECARD_PROTO_TS)
+                .build();
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
