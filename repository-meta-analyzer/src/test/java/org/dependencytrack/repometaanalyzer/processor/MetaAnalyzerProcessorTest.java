@@ -433,13 +433,15 @@ class MetaAnalyzerProcessorTest {
     @Test
     void testHealthFetchMetaAllFields() throws Exception {
         // Testing Constants
+        final String TEST_TIMESTAMP = "2025-06-19T00:00:00Z";
         final int EXPECTED_STARS = 42;
         final int EXPECTED_FORKS = 17;
         final int EXPECTED_CONTRIBUTORS = 5;
         final float EXPECTED_COMMIT_FREQUENCY = 3.7f;
         final int EXPECTED_OPEN_ISSUES = 13;
         final int EXPECTED_OPEN_PRS = 4;
-        final String EXPECTED_LAST_COMMIT_DATE = "2025-06-18T12:34:56Z";
+        final Instant EXPECTED_LAST_COMMIT_INSTANT = Instant.parse(TEST_TIMESTAMP);
+        final Timestamp EXPECTED_LAST_COMMIT_PROTO_TS = Timestamps.parse(TEST_TIMESTAMP);
         final int EXPECTED_BUS_FACTOR = 2;
         final boolean EXPECTED_HAS_README = true;
         final boolean EXPECTED_HAS_COC = false;
@@ -456,7 +458,6 @@ class MetaAnalyzerProcessorTest {
 
         final float EXPECTED_SCORECARD_SCORE = 8.5f;
         final String EXPECTED_SCORECARD_VERSION = "v4.2.0";
-        final String TEST_TIMESTAMP = "2025-06-19T00:00:00Z";
         final Instant EXPECTED_SCORECARD_INSTANT = Instant.parse(TEST_TIMESTAMP);
         final Timestamp EXPECTED_SCORECARD_PROTO_TS = Timestamps.parse(TEST_TIMESTAMP);
 
@@ -478,7 +479,7 @@ class MetaAnalyzerProcessorTest {
         healthMetaModel.setCommitFrequency(EXPECTED_COMMIT_FREQUENCY);
         healthMetaModel.setOpenIssues(EXPECTED_OPEN_ISSUES);
         healthMetaModel.setOpenPRs(EXPECTED_OPEN_PRS);
-        healthMetaModel.setLastCommitDate(EXPECTED_LAST_COMMIT_DATE);
+        healthMetaModel.setLastCommitDate(EXPECTED_LAST_COMMIT_INSTANT);
         healthMetaModel.setBusFactor(EXPECTED_BUS_FACTOR);
         healthMetaModel.setHasReadme(EXPECTED_HAS_README);
         healthMetaModel.setHasCodeOfConduct(EXPECTED_HAS_COC);
@@ -526,7 +527,7 @@ class MetaAnalyzerProcessorTest {
                 .setCommitFrequency(EXPECTED_COMMIT_FREQUENCY)
                 .setOpenIssues(EXPECTED_OPEN_ISSUES)
                 .setOpenPRs(EXPECTED_OPEN_PRS)
-                .setLastCommitDate(EXPECTED_LAST_COMMIT_DATE)
+                .setLastCommitDate(EXPECTED_LAST_COMMIT_PROTO_TS)
                 .setBusFactor(EXPECTED_BUS_FACTOR)
                 .setHasReadme(EXPECTED_HAS_README)
                 .setHasCodeOfConduct(EXPECTED_HAS_COC)

@@ -42,6 +42,7 @@ import org.dependencytrack.repometaanalyzer.repositories.IMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
+import org.dependencytrack.repometaanalyzer.util.ProtoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,7 +184,9 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getCommitFrequency()).ifPresent(healthMetaBuilder::setCommitFrequency);
         Optional.ofNullable(mergedResults.getOpenIssues()).ifPresent(healthMetaBuilder::setOpenIssues);
         Optional.ofNullable(mergedResults.getOpenPRs()).ifPresent(healthMetaBuilder::setOpenPRs);
-        Optional.ofNullable(mergedResults.getLastCommitDate()).ifPresent(healthMetaBuilder::setLastCommitDate);
+        Optional.ofNullable(mergedResults.getLastCommitDate())
+                .map(ProtoUtil::convertToProtoTimestamp)
+                .ifPresent(healthMetaBuilder::setLastCommitDate);
         Optional.ofNullable(mergedResults.getBusFactor()).ifPresent(healthMetaBuilder::setBusFactor);
         Optional.ofNullable(mergedResults.getHasReadme()).ifPresent(healthMetaBuilder::setHasReadme);
         Optional.ofNullable(mergedResults.getHasCodeOfConduct()).ifPresent(healthMetaBuilder::setHasCodeOfConduct);
@@ -196,10 +199,7 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);
         Optional.ofNullable(mergedResults.getScoreCardReferenceVersion()).ifPresent(healthMetaBuilder::setScoreCardReferenceVersion);
         Optional.ofNullable(mergedResults.getScoreCardTimestamp())
-                .map(instant -> Timestamp.newBuilder()
-                        .setSeconds(instant.getEpochSecond())
-                        .setNanos(instant.getNano())
-                        .build())
+                .map(ProtoUtil::convertToProtoTimestamp)
                 .ifPresent(healthMetaBuilder::setScoreCardTimestamp);
 
         List<ScoreCardCheck> scoreCardChecks = Optional.ofNullable(mergedResults.getScoreCardChecks())

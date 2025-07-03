@@ -34,7 +34,7 @@ public class ComponentHealthMetaModel implements Serializable {
     private Float commitFrequency;
     private Integer openIssues;
     private Integer openPRs;
-    private String lastCommitDate;
+    private Instant lastCommitDate;
     private Integer busFactor;
     private Boolean hasReadme;
     private Boolean hasCodeOfConduct;
@@ -106,11 +106,11 @@ public class ComponentHealthMetaModel implements Serializable {
         this.openPRs = openPRs;
     }
 
-    public String getLastCommitDate() {
+    public Instant getLastCommitDate() {
         return lastCommitDate;
     }
 
-    public void setLastCommitDate(String lastCommitDate) {
+    public void setLastCommitDate(Instant lastCommitDate) {
         this.lastCommitDate = lastCommitDate;
     }
 
