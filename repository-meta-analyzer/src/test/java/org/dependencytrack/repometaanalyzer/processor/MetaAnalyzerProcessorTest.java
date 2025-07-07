@@ -607,4 +607,31 @@ class MetaAnalyzerProcessorTest {
                 .build();
         assertThat(result.getHealthMeta()).isEqualTo(expected);
     }
+
+    @Test
+    void testHealthFetchMetaWithInternalComponent() throws Exception {
+        // Build AnalysisCommand
+        AnalysisCommand command = AnalysisCommand.newBuilder()
+                .setComponent(
+                        Component.newBuilder()
+                                .setPurl(TEST_PURL_JACKSON_BIND)
+                                .setInternal(true)
+                                .build()
+                )
+                .setFetchMeta(FetchMeta.FETCH_META_HEALTH)
+                .build();
+
+
+        // Pipe into the input topic
+        inputTopic.pipeInput(new TestRecord<>(new PackageURL(TEST_PURL_JACKSON_BIND), command));
+
+        // Assertions on output
+        assertThat(outputTopic.getQueueSize()).isEqualTo(1);
+        AnalysisResult result = outputTopic.readKeyValuesToList().getFirst().value;
+
+        HealthMeta empty = HealthMeta
+                .newBuilder()
+                .build();
+        assertThat(result.getHealthMeta()).isEqualTo(empty);
+    }
 }
