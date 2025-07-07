@@ -141,6 +141,12 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
     }
 
     private AnalysisResult.Builder performHealthMeta(PackageURL purl, AnalysisCommand analysisCommand, AnalysisResult.Builder resultBuilder) {
+        // Can't fetch health meta from external sources for internal components
+        if (analysisCommand.getComponent().getInternal()) {
+            LOGGER.debug("Skipping internal component with purl {}", purl);
+            return resultBuilder;
+        }
+
         List<IHealthMetaAnalyzer> analyzers = healthAnalyzerFactory.createApplicableAnalyzers(purl);
 
         // don't have a fitting analyzer for this package
