@@ -35,6 +35,7 @@ public class HealthAnalyzerFactory {
     private final CloseableHttpClient httpClient;
 
     private static final List<Supplier<IHealthMetaAnalyzer>> healthAnalyzers = List.of(
+            DummyHealthMetaAnalyzer::new
             // todo: add analyzer constructors here
     );
 
