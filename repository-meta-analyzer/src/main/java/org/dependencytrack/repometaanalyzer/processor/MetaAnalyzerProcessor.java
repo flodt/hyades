@@ -187,7 +187,7 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getStars()).ifPresent(healthMetaBuilder::setStars);
         Optional.ofNullable(mergedResults.getForks()).ifPresent(healthMetaBuilder::setForks);
         Optional.ofNullable(mergedResults.getContributors()).ifPresent(healthMetaBuilder::setContributors);
-        Optional.ofNullable(mergedResults.getCommitFrequency()).ifPresent(healthMetaBuilder::setCommitFrequency);
+        Optional.ofNullable(mergedResults.getCommitFrequencyWeekly()).ifPresent(healthMetaBuilder::setCommitFrequencyWeekly);
         Optional.ofNullable(mergedResults.getOpenIssues()).ifPresent(healthMetaBuilder::setOpenIssues);
         Optional.ofNullable(mergedResults.getOpenPRs()).ifPresent(healthMetaBuilder::setOpenPRs);
         Optional.ofNullable(mergedResults.getLastCommitDate())
@@ -200,6 +200,7 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getDependents()).ifPresent(healthMetaBuilder::setDependents);
         Optional.ofNullable(mergedResults.getFiles()).ifPresent(healthMetaBuilder::setFiles);
         Optional.ofNullable(mergedResults.getIsRepoArchived()).ifPresent(healthMetaBuilder::setIsRepoArchived);
+        Optional.ofNullable(mergedResults.getAvgIssueAgeDays()).ifPresent(healthMetaBuilder::setAverageIssueAgeDays);
 
         // Build scorecard proto and add to result
         Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);

@@ -455,6 +455,7 @@ class MetaAnalyzerProcessorTest {
         final String CHECK_REASON = "All builds green";  // dummy value
         final List<String> CHECK_DETAILS = Arrays.asList("build-1", "build-2");
         final String CHECK_DOC_URL = "https://ossf.io/scorecard/docs/checks#ci-checked";  // dummy URL
+        final int EXPECTED_AVG_ISSUE_AGE_DAYS = 348;
 
         final float EXPECTED_SCORECARD_SCORE = 8.5f;
         final String EXPECTED_SCORECARD_VERSION = "v4.2.0";
@@ -476,7 +477,7 @@ class MetaAnalyzerProcessorTest {
         healthMetaModel.setStars(EXPECTED_STARS);
         healthMetaModel.setForks(EXPECTED_FORKS);
         healthMetaModel.setContributors(EXPECTED_CONTRIBUTORS);
-        healthMetaModel.setCommitFrequency(EXPECTED_COMMIT_FREQUENCY);
+        healthMetaModel.setCommitFrequencyWeekly(EXPECTED_COMMIT_FREQUENCY);
         healthMetaModel.setOpenIssues(EXPECTED_OPEN_ISSUES);
         healthMetaModel.setOpenPRs(EXPECTED_OPEN_PRS);
         healthMetaModel.setLastCommitDate(EXPECTED_LAST_COMMIT_INSTANT);
@@ -487,6 +488,7 @@ class MetaAnalyzerProcessorTest {
         healthMetaModel.setDependents(EXPECTED_DEPENDENTS);
         healthMetaModel.setFiles(EXPECTED_FILES);
         healthMetaModel.setIsRepoArchived(EXPECTED_IS_REPO_ARCHIVED);
+        healthMetaModel.setAvgIssueAgeDays(EXPECTED_AVG_ISSUE_AGE_DAYS);
 
         ScoreCardCheck modelCheck = new ScoreCardCheck();
         modelCheck.setName(CHECK_NAME);
@@ -524,7 +526,7 @@ class MetaAnalyzerProcessorTest {
                 .setStars(EXPECTED_STARS)
                 .setForks(EXPECTED_FORKS)
                 .setContributors(EXPECTED_CONTRIBUTORS)
-                .setCommitFrequency(EXPECTED_COMMIT_FREQUENCY)
+                .setCommitFrequencyWeekly(EXPECTED_COMMIT_FREQUENCY)
                 .setOpenIssues(EXPECTED_OPEN_ISSUES)
                 .setOpenPRs(EXPECTED_OPEN_PRS)
                 .setLastCommitDate(EXPECTED_LAST_COMMIT_PROTO_TS)
@@ -547,6 +549,7 @@ class MetaAnalyzerProcessorTest {
                 .setScoreCardScore(EXPECTED_SCORECARD_SCORE)
                 .setScoreCardReferenceVersion(EXPECTED_SCORECARD_VERSION)
                 .setScoreCardTimestamp(EXPECTED_SCORECARD_PROTO_TS)
+                .setAverageIssueAgeDays(EXPECTED_AVG_ISSUE_AGE_DAYS)
                 .build();
 
         assertThat(actual).isEqualTo(expected);

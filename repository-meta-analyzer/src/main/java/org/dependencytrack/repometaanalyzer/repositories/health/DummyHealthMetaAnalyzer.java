@@ -44,7 +44,7 @@ public class DummyHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
         metaModel.setStars(42);
         metaModel.setForks(7);
         metaModel.setContributors(3);
-        metaModel.setCommitFrequency(1.5f);
+        metaModel.setCommitFrequencyWeekly(1.5f);
         metaModel.setOpenIssues(5);
         metaModel.setOpenPRs(2);
         metaModel.setLastCommitDate(Instant.now());
@@ -62,6 +62,8 @@ public class DummyHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
         metaModel.setScoreCardScore(0.0f);
         metaModel.setScoreCardReferenceVersion("0.1.0");
         metaModel.setScoreCardTimestamp(Instant.now());
+
+        metaModel.setAvgIssueAgeDays(1234);
 
         return metaModel;
     }

@@ -31,7 +31,7 @@ public class ComponentHealthMetaModel implements Serializable {
     private Integer stars;
     private Integer forks;
     private Integer contributors;
-    private Float commitFrequency;
+    private Float commitFrequencyWeekly;
     private Integer openIssues;
     private Integer openPRs;
     private Instant lastCommitDate;
@@ -42,6 +42,7 @@ public class ComponentHealthMetaModel implements Serializable {
     private Integer dependents;
     private Integer files;
     private Boolean isRepoArchived;
+    private Integer avgIssueAgeDays;
 
     // OpenSSF Scorecard: individual checks, overall score, reference version, and timestamp
     private List<ScoreCardCheck> scoreCardChecks;
@@ -82,12 +83,12 @@ public class ComponentHealthMetaModel implements Serializable {
         this.contributors = contributors;
     }
 
-    public Float getCommitFrequency() {
-        return commitFrequency;
+    public Float getCommitFrequencyWeekly() {
+        return commitFrequencyWeekly;
     }
 
-    public void setCommitFrequency(Float commitFrequency) {
-        this.commitFrequency = commitFrequency;
+    public void setCommitFrequencyWeekly(Float commitFrequencyWeekly) {
+        this.commitFrequencyWeekly = commitFrequencyWeekly;
     }
 
     public Integer getOpenIssues() {
@@ -202,6 +203,14 @@ public class ComponentHealthMetaModel implements Serializable {
         this.scoreCardTimestamp = scoreCardTimestamp;
     }
 
+    public Integer getAvgIssueAgeDays() {
+        return avgIssueAgeDays;
+    }
+
+    public void setAvgIssueAgeDays(Integer avgIssueAgeDays) {
+        this.avgIssueAgeDays = avgIssueAgeDays;
+    }
+
     @Override
     public String toString() {
         return "ComponentHealthMetaModel{" +
@@ -209,10 +218,10 @@ public class ComponentHealthMetaModel implements Serializable {
                 ", stars=" + stars +
                 ", forks=" + forks +
                 ", contributors=" + contributors +
-                ", commitFrequency=" + commitFrequency +
+                ", commitFrequencyWeekly=" + commitFrequencyWeekly +
                 ", openIssues=" + openIssues +
                 ", openPRs=" + openPRs +
-                ", lastCommitDate='" + lastCommitDate + '\'' +
+                ", lastCommitDate=" + lastCommitDate +
                 ", busFactor=" + busFactor +
                 ", hasReadme=" + hasReadme +
                 ", hasCodeOfConduct=" + hasCodeOfConduct +
@@ -220,6 +229,7 @@ public class ComponentHealthMetaModel implements Serializable {
                 ", dependents=" + dependents +
                 ", files=" + files +
                 ", isRepoArchived=" + isRepoArchived +
+                ", avgIssueAgeDays=" + avgIssueAgeDays +
                 ", scoreCardChecks=" + scoreCardChecks +
                 ", scoreCardScore=" + scoreCardScore +
                 ", scoreCardReferenceVersion='" + scoreCardReferenceVersion + '\'' +
@@ -238,7 +248,7 @@ public class ComponentHealthMetaModel implements Serializable {
         if (other.stars != null) this.stars = other.stars;
         if (other.forks != null) this.forks = other.forks;
         if (other.contributors != null) this.contributors = other.contributors;
-        if (other.commitFrequency != null) this.commitFrequency = other.commitFrequency;
+        if (other.commitFrequencyWeekly != null) this.commitFrequencyWeekly = other.commitFrequencyWeekly;
         if (other.openIssues != null) this.openIssues = other.openIssues;
         if (other.openPRs != null) this.openPRs = other.openPRs;
         if (other.lastCommitDate != null) this.lastCommitDate = other.lastCommitDate;
@@ -253,5 +263,6 @@ public class ComponentHealthMetaModel implements Serializable {
         if (other.scoreCardScore != null) this.scoreCardScore = other.scoreCardScore;
         if (other.scoreCardReferenceVersion != null) this.scoreCardReferenceVersion = other.scoreCardReferenceVersion;
         if (other.scoreCardTimestamp != null) this.scoreCardTimestamp = other.scoreCardTimestamp;
+        if (other.avgIssueAgeDays != null) this.avgIssueAgeDays = other.avgIssueAgeDays;
     }
 }
