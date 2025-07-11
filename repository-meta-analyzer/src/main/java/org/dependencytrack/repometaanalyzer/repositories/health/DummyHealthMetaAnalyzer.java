@@ -23,7 +23,9 @@ import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DummyHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
     @Override
@@ -40,30 +42,38 @@ public class DummyHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
 
         ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(component);
 
-        // dummy values
-        metaModel.setStars(42);
-        metaModel.setForks(7);
-        metaModel.setContributors(3);
-        metaModel.setCommitFrequencyWeekly(1.5f);
-        metaModel.setOpenIssues(5);
-        metaModel.setOpenPRs(2);
-        metaModel.setLastCommitDate(Instant.now());
-        metaModel.setBusFactor(1);
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
-        metaModel.setHasReadme(true);
-        metaModel.setHasCodeOfConduct(false);
-        metaModel.setHasSecurityPolicy(false);
+        // random integers
+        metaModel.setStars(rnd.nextInt(0, 5000));                   // 0–4999 stars
+        metaModel.setForks(rnd.nextInt(0, 2000));                   // 0–1999 forks
+        metaModel.setContributors(rnd.nextInt(1, 100));             // 1–99 contributors
+        metaModel.setOpenIssues(rnd.nextInt(0, 1000));              // 0–999 open issues
+        metaModel.setOpenPRs(rnd.nextInt(0, 500));                  // 0–499 open PRs
+        metaModel.setBusFactor(rnd.nextInt(1, 10));                 // 1–9 bus factor
+        metaModel.setDependents(rnd.nextInt(0, 1000));              // 0–999 dependents
+        metaModel.setFiles(rnd.nextInt(1, 500));                    // 1–499 files
+        metaModel.setAvgIssueAgeDays(rnd.nextInt(0, 2000));         // 0–1999 days
 
-        metaModel.setDependents(0);
-        metaModel.setFiles(10);
-        metaModel.setIsRepoArchived(false);
+        // random floats
+        metaModel.setCommitFrequencyWeekly(rnd.nextFloat() * 10f);  // 0.0–10.0 commits/week
+        metaModel.setScoreCardScore(rnd.nextFloat() * 10f);         // 0.0–10.0 score
 
+        // random dates within the last 365 days
+        long daysAgo = rnd.nextLong(0, 366);
+        metaModel.setLastCommitDate(Instant.now().minus(daysAgo, ChronoUnit.DAYS));
+        long scDaysAgo = rnd.nextLong(0, 366);
+        metaModel.setScoreCardTimestamp(Instant.now().minus(scDaysAgo, ChronoUnit.DAYS));
+        metaModel.setScoreCardReferenceVersion("0." + rnd.nextInt(1, 5) + "." + rnd.nextInt(0, 10));
+
+        // random booleans
+        metaModel.setHasReadme(rnd.nextBoolean());
+        metaModel.setHasCodeOfConduct(rnd.nextBoolean());
+        metaModel.setHasSecurityPolicy(rnd.nextBoolean());
+        metaModel.setIsRepoArchived(rnd.nextBoolean());
+
+        // leave scoreCardChecks empty or fill with dummy strings
         metaModel.setScoreCardChecks(Collections.emptyList());
-        metaModel.setScoreCardScore(0.0f);
-        metaModel.setScoreCardReferenceVersion("0.1.0");
-        metaModel.setScoreCardTimestamp(Instant.now());
-
-        metaModel.setAvgIssueAgeDays(1234);
 
         return metaModel;
     }
