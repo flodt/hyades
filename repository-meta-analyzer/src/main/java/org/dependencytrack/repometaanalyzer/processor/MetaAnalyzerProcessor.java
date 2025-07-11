@@ -200,7 +200,7 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
         Optional.ofNullable(mergedResults.getDependents()).ifPresent(healthMetaBuilder::setDependents);
         Optional.ofNullable(mergedResults.getFiles()).ifPresent(healthMetaBuilder::setFiles);
         Optional.ofNullable(mergedResults.getIsRepoArchived()).ifPresent(healthMetaBuilder::setIsRepoArchived);
-        Optional.ofNullable(mergedResults.getAvgIssueAgeDays()).ifPresent(healthMetaBuilder::setAverageIssueAgeDays);
+        Optional.ofNullable(mergedResults.getAvgIssueAgeDays()).ifPresent(healthMetaBuilder::setAvgIssueAgeDays);
 
         // Build scorecard proto and add to result
         Optional.ofNullable(mergedResults.getScoreCardScore()).ifPresent(healthMetaBuilder::setScoreCardScore);

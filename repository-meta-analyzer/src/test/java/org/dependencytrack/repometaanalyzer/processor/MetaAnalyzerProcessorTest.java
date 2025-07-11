@@ -549,7 +549,7 @@ class MetaAnalyzerProcessorTest {
                 .setScoreCardScore(EXPECTED_SCORECARD_SCORE)
                 .setScoreCardReferenceVersion(EXPECTED_SCORECARD_VERSION)
                 .setScoreCardTimestamp(EXPECTED_SCORECARD_PROTO_TS)
-                .setAverageIssueAgeDays(EXPECTED_AVG_ISSUE_AGE_DAYS)
+                .setAvgIssueAgeDays(EXPECTED_AVG_ISSUE_AGE_DAYS)
                 .build();
 
         assertThat(actual).isEqualTo(expected);
