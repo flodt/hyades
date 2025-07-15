@@ -18,9 +18,19 @@
  */
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Similarly to AbstractMetaAnalyzer:
@@ -31,6 +41,14 @@ public abstract class AbstractHealthMetaAnalyzer implements IHealthMetaAnalyzer 
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    protected final ObjectMapper mapper = new ObjectMapper();
+
+    protected CloseableHttpResponse processHttpRequest(String url) throws IOException {
+        final HttpUriRequest request = new HttpGet(url);
+        request.addHeader("accept", "application/json");
+        return httpClient.execute(request);
+    }
+
     @Override
     public void setHttpClient(CloseableHttpClient httpClient) {
         this.httpClient = httpClient;
@@ -39,5 +57,21 @@ public abstract class AbstractHealthMetaAnalyzer implements IHealthMetaAnalyzer 
     @Override
     public String getName() {
         return this.getClass().getSimpleName();
+    }
+
+    protected <T> Optional<T> requestParseJsonForResult(String url, Function<JsonNode, Optional<T>> parser) {
+        try (CloseableHttpResponse response = processHttpRequest(url)) {
+            int status = response.getStatusLine().getStatusCode();
+            if (status != HttpStatus.SC_OK) {
+                this.logger.warn("API returned status {} for {}", status, url);
+                return Optional.empty();
+            }
+
+            JsonNode root = mapper.readTree(response.getEntity().getContent());
+            return parser.apply(root);
+        } catch (IOException e) {
+            this.logger.warn("I/O error during retrieval", e);
+            return Optional.empty();
+        }
     }
 }
