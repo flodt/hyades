@@ -25,6 +25,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.dependencytrack.repometaanalyzer.util.GitHubUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,9 +72,24 @@ public abstract class AbstractHealthMetaAnalyzer implements IHealthMetaAnalyzer 
 
             JsonNode root = mapper.readTree(response.getEntity().getContent());
             return parser.apply(root);
+        } catch (RuntimeException e) {
+            this.logger.warn("Unexpected error during retrieval", e);
+            return Optional.empty();
         } catch (IOException e) {
             this.logger.warn("I/O error during retrieval", e);
             return Optional.empty();
+        }
+    }
+
+    protected <T> T safeFetchValue(GitHubUtil.ThrowingAPICall<T> call, T defaultValue) {
+        try {
+            return call.call();
+        } catch (IOException e) {
+            logger.warn("I/O error during API call", e);
+            return defaultValue;
+        } catch (InterruptedException e) {
+            logger.warn("API call was interrupted", e);
+            return defaultValue;
         }
     }
 

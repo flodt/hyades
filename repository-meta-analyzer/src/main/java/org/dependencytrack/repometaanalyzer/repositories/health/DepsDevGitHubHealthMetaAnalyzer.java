@@ -20,16 +20,31 @@ package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.packageurl.PackageURL;
+import jakarta.inject.Inject;
+import org.dependencytrack.common.SecretDecryptor;
 import org.dependencytrack.persistence.model.Component;
+import org.dependencytrack.persistence.model.Repository;
+import org.dependencytrack.persistence.model.RepositoryType;
+import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
+import org.dependencytrack.repometaanalyzer.util.GitHubUtil;
+import org.kohsuke.github.GHIssue;
+import org.kohsuke.github.GHIssueState;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHRepositoryStatistics;
 import org.kohsuke.github.GitHub;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
 public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
@@ -42,6 +57,14 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
             Map.entry(PackageURL.StandardTypes.CARGO, "CARGO"),
             Map.entry(PackageURL.StandardTypes.GEM, "RUBYGEMS")
     );
+
+    private static final String GITHUB_URL = "https://github.com";
+
+    @Inject
+    RepoEntityRepository repoEntityRepository;
+
+    @Inject
+    SecretDecryptor secretDecryptor;
 
     @Override
     public boolean isApplicable(PackageURL packageURL) {
@@ -78,6 +101,14 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         String version = maybeVersion.get();
 
+        // Collect dependents count for this package version candidate
+        Optional<Integer> maybeDependents = fetchDependents(system, name, version);
+        if (maybeDependents.isEmpty()) {
+            logger.warn("Could not determine dependents for {}", packageURL);
+            // fallthrough
+        }
+        maybeDependents.ifPresent(metaModel::setDependents);
+
         // collect package information on this candidate version
         Optional<String> maybeProject = fetchSourceRepoProjectKey(system, name, version);
         if (maybeProject.isEmpty()) {
@@ -100,6 +131,32 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
             return metaModel;
         }
 
+        // Connect to GitHub
+        Optional<Repository> maybeRepository = repoEntityRepository
+                .findEnabledRepositoriesByType(RepositoryType.GITHUB)
+                .stream()
+                .filter(repo -> Objects.equals(repo.getUrl(), GITHUB_URL))
+                .findFirst();
+        if (maybeRepository.isEmpty()) {
+            logger.warn("Could not find GitHub configuration.");
+            return metaModel;
+        }
+        Repository configuration = maybeRepository.get();
+
+        Optional<GitHub> maybeGitHub = connectToGitHubWith(configuration);
+        if (maybeGitHub.isEmpty()) {
+            logger.warn("Could not connect to GitHub.");
+            return metaModel;
+        }
+        GitHub gitHub = maybeGitHub.get();
+
+        Optional<ComponentHealthMetaModel> maybeGitHubData = fetchDataFromGitHub(gitHub, project);
+        if (maybeGitHubData.isEmpty()) {
+            logger.warn("Failed to fetch GitHub data for {}", packageURL);
+            return metaModel;
+        }
+        maybeGitHubData.ifPresent(metaModel::mergeFrom);
+
         return metaModel;
     }
 
@@ -114,6 +171,12 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
                     .filter(Objects::nonNull)
                     .findFirst();
         });
+    }
+
+    private Optional<Integer> fetchDependents(String system, String name, String version) {
+        String url = "https://api.deps.dev/v3alpha/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
+                + "/versions/" + urlEncode(version) + ":dependents";
+        return requestParseJsonForResult(url, root -> Optional.of(root.path("dependentCount").asInt()));
     }
 
     private Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
@@ -166,5 +229,147 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
 
             return Optional.of(metaModel);
         });
+    }
+
+    private Optional<GitHub> connectToGitHubWith(Repository credentials) {
+        try {
+            String user = credentials.getUsername();
+            String password = secretDecryptor.decryptAsString(credentials.getPassword());
+            GitHub github = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
+            return Optional.of(github);
+        } catch (IOException e) {
+            logger.warn("Failed to connect to GitHub", e);
+            return Optional.empty();
+        } catch (Exception e) {
+            logger.warn("Credentials retrieval failed", e);
+            return Optional.empty();
+        }
+    }
+
+    private Optional<ComponentHealthMetaModel> fetchDataFromGitHub(GitHub gitHub, String project) {
+        try {
+            ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
+            GHRepository repository = gitHub.getRepository(project.replace("github.com/", ""));
+
+            metaModel.setContributors(safeFetchValue(() -> repository.listContributors().toList().size(), null));
+            metaModel.setOpenPRs(safeFetchValue(() -> repository.getPullRequests(GHIssueState.OPEN).size(), null));
+            metaModel.setLastCommitDate(safeFetchValue(() -> {
+                String head = repository.getBranch(repository.getDefaultBranch()).getSHA1();
+                return repository.getCommit(head).getCommitDate().toInstant();
+            }, null));
+
+            metaModel.setHasReadme(safeFetchValue(() -> {
+                repository.getReadme();
+                // if we didn't have a readme, we would have thrown here
+                return true;
+            }, false));
+
+            metaModel.setHasCodeOfConduct(safeFetchValue(() -> {
+                repository.getFileContent("CODE_OF_CONDUCT.md");
+                // see above
+                return true;
+            }, false));
+
+            metaModel.setHasSecurityPolicy(safeFetchValue(() -> {
+                repository.getFileContent(".github/SECURITY.md");
+                // see above
+                return true;
+            }, false));
+
+            metaModel.setFiles(
+                    safeFetchValue(() ->
+                                    (int) repository
+                                            .getTree(
+                                                    repository.getBranch(repository.getDefaultBranch()).getSHA1()
+                                            )
+                                            .getTree()
+                                            .stream()
+                                            .filter(Objects::nonNull)
+                                            .filter(entry -> "blob".equals(entry.getType()))
+                                            .count(),
+                            null)
+            );
+
+            metaModel.setIsRepoArchived(repository.isArchived());
+
+            metaModel.setAvgIssueAgeDays(
+                    safeFetchValue(() -> {
+                                List<GHIssue> issues = repository.getIssues(GHIssueState.OPEN);
+
+                                if (issues.isEmpty()) {
+                                    return 0;
+                                }
+
+                                long sumDays = 0;
+                                Instant now = Instant.now();
+
+                                for (GHIssue issue : issues) {
+                                    Instant created = issue.getCreatedAt().toInstant();
+                                    long age = Duration.between(created, now).toDays();
+                                    sumDays += age;
+                                }
+
+                                double avg = (double) sumDays / (double) issues.size();
+                                return (int) Math.round(avg);
+                            },
+                            null)
+            );
+
+            metaModel.setCommitFrequencyWeekly(safeFetchValue(() -> {
+                List<GHRepositoryStatistics.ContributorStats> stats = repository
+                        .getStatistics()
+                        .getContributorStats()
+                        .toList();
+
+                if (stats.isEmpty()) {
+                    throw new IOException("No contributor stats found, can't compute weekly commit frequency");
+                }
+
+                int totalCommits = stats
+                        .stream()
+                        .mapToInt(GHRepositoryStatistics.ContributorStats::getTotal)
+                        .sum();
+
+                Instant created = repository.getCreatedAt().toInstant();
+                long weeks = ChronoUnit.WEEKS.between(created, Instant.now());
+                if (weeks <= 0) {
+                    // brand‑new repo: count all commits as one week
+                    return (float) totalCommits;
+                }
+
+                return (float) totalCommits / (float) weeks;
+            }, null));
+
+            metaModel.setBusFactor(safeFetchValue(() -> {
+                List<GHRepositoryStatistics.ContributorStats> stats = repository
+                        .getStatistics()
+                        .getContributorStats()
+                        .toList();
+
+                if (stats.isEmpty()) {
+                    throw new IOException("No contributor stats found, can't compute bus factor");
+                }
+
+                int totalCommits = stats.stream()
+                        .mapToInt(GHRepositoryStatistics.ContributorStats::getTotal)
+                        .sum();
+                int halfCommits = totalCommits / 2;
+                AtomicInteger currentCommits = new AtomicInteger(0);
+
+                // the stream-expression is off-by-one because takeWhile stops 'before' the predicate is flipped
+                return 1 + (int) stats
+                        .stream()
+                        .map(GHRepositoryStatistics.ContributorStats::getTotal)
+                        .sorted(Comparator.reverseOrder())
+                        .map(currentCommits::addAndGet)
+                        .takeWhile(c -> c < halfCommits)
+                        .count();
+            }, null));
+
+            return Optional.of(metaModel);
+        } catch (IOException e) {
+            logger.warn("GitHub repository retrieval failed", e);
+            return Optional.empty();
+        }
     }
 }

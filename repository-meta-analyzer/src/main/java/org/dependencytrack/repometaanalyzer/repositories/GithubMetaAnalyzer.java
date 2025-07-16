@@ -23,6 +23,7 @@ import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.repometaanalyzer.model.MetaAnalyzerException;
 import org.dependencytrack.repometaanalyzer.model.MetaModel;
+import org.dependencytrack.repometaanalyzer.util.GitHubUtil;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRelease;
@@ -32,9 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * An IMetaAnalyzer implementation that supports GitHub via the api
@@ -119,14 +117,7 @@ public class GithubMetaAnalyzer extends AbstractMetaAnalyzer {
         final MetaModel meta = new MetaModel(component);
         if (component.getPurl() != null) {
             try {
-                final GitHub github;
-                if (isNotBlank(repositoryUser) && isNotBlank(repositoryPassword)) {
-                    github = GitHub.connect(repositoryUser, repositoryPassword);
-                } else if (isBlank(repositoryUser) && isNotBlank(repositoryPassword)) {
-                    github = GitHub.connectUsingOAuth(repositoryUrl, repositoryPassword);
-                } else {
-                    github = GitHub.connectAnonymously();
-                }
+                final GitHub github = GitHubUtil.connectToGitHub(repositoryUser, repositoryPassword, repositoryUrl);
 
                 GHRepository repository = github.getRepository(String.format("%s/%s", component.getPurl().getNamespace(), component.getPurl().getName()));
                 LOGGER.debug(String.format("Repos is at %s", repository.getUrl()));
