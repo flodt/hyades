@@ -29,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -73,5 +75,9 @@ public abstract class AbstractHealthMetaAnalyzer implements IHealthMetaAnalyzer 
             this.logger.warn("I/O error during retrieval", e);
             return Optional.empty();
         }
+    }
+
+    protected String urlEncode(final String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }

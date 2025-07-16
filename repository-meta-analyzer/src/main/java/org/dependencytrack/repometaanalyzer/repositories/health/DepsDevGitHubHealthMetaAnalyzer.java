@@ -22,7 +22,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.packageurl.PackageURL;
 import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
+import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -82,13 +85,20 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         String project = maybeProject.get();
 
-        // todo continue here
+        Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = fetchScorecardAndStarsForksForProject(project);
+        if (maybeScorecardStarsForks.isEmpty()) {
+            logger.warn("Could not determine scorecard for {}", packageURL);
+            // we can continue with the project id, now going to GitHub
+        }
+        maybeScorecardStarsForks.ifPresent(metaModel::mergeFrom);
+
+        // todo continue
 
         return metaModel;
     }
 
     private Optional<String> fetchLatestVersion(String system, String name) {
-        String url = "https://api.deps.dev/v3/systems" + system + "/packages/" + name;
+        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name);
         return requestParseJsonForResult(url, (root) -> {
             JsonNode versionsNode = root.get("versions");
             return StreamSupport
@@ -101,11 +111,54 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
     }
 
     private Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
-        String url = "https://api.deps.dev/v3/systems" + system + "/packages/" + name + "/versions/" + version;
+        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
+                + "/versions/" + urlEncode(version);
         return requestParseJsonForResult(url, (root) -> {
-            // todo continue and extract project here
-            return Optional.empty();
+            JsonNode relatedProjectsNode = root.get("relatedProjects");
+            return StreamSupport
+                    .stream(relatedProjectsNode.spliterator(), false)
+                    .filter(n -> "SOURCE_REPO".equals(n.path("relationType").asText()))
+                    .map(n -> n.path("projectKey").path("id").asText())
+                    .filter(Objects::nonNull)
+                    .findFirst();
         });
     }
 
+    private Optional<ComponentHealthMetaModel> fetchScorecardAndStarsForksForProject(String project) {
+        String url = "https://api.deps.dev/v3/projects/" + urlEncode(project);
+        return requestParseJsonForResult(url, (root) -> {
+            ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
+
+            metaModel.setOpenIssues(root.path("openIssuesCount").asInt());
+            metaModel.setStars(root.path("starsCount").asInt());
+            metaModel.setForks(root.path("forksCount").asInt());
+            metaModel.setScoreCardReferenceVersion(
+                    root.path("scorecard").path("scorecard").path("version").asText()
+            );
+            metaModel.setScoreCardTimestamp(Instant.parse(root.path("scorecard").path("date").asText()));
+            metaModel.setScoreCardScore((float) root.path("scorecard").path("overallScore").asDouble());
+
+            List<ScoreCardCheck> scoreCardChecks = StreamSupport
+                    .stream(root.path("scorecard").path("checks").spliterator(), false)
+                    .map(node -> {
+                        ScoreCardCheck check = new ScoreCardCheck();
+                        check.setName(node.path("name").asText());
+                        check.setScore((float) node.path("score").asDouble());
+                        check.setDescription(node.path("documentation").path("shortDescription").asText());
+                        check.setDocumentationUrl(node.path("documentation").path("url").asText());
+                        check.setReason(node.path("reason").asText());
+                        check.setDetails(
+                                StreamSupport
+                                        .stream(node.path("details").spliterator(), false)
+                                        .map(JsonNode::asText)
+                                        .toList()
+                        );
+                        return check;
+                    })
+                    .toList();
+            metaModel.setScoreCardChecks(scoreCardChecks);
+
+            return Optional.of(metaModel);
+        });
+    }
 }
