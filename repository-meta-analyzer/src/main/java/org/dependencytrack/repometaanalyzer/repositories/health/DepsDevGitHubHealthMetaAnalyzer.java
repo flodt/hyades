@@ -23,6 +23,7 @@ import com.github.packageurl.PackageURL;
 import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
+import org.kohsuke.github.GitHub;
 
 import java.time.Instant;
 import java.util.List;
@@ -85,14 +86,19 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         String project = maybeProject.get();
 
+        // Collect OpenSSF Scorecard for this project
         Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = fetchScorecardAndStarsForksForProject(project);
         if (maybeScorecardStarsForks.isEmpty()) {
             logger.warn("Could not determine scorecard for {}", packageURL);
-            // we can continue with the project id, now going to GitHub
+            // we can continue with the GitHub API even without the scorecard; fallthrough
         }
         maybeScorecardStarsForks.ifPresent(metaModel::mergeFrom);
 
-        // todo continue
+        // The rest is dependent on the GitHub API
+        if (!project.startsWith("github.com")) {
+            logger.warn("Source code project for {} is not on GitHub, can not fetch repository metadata.", packageURL);
+            return metaModel;
+        }
 
         return metaModel;
     }
