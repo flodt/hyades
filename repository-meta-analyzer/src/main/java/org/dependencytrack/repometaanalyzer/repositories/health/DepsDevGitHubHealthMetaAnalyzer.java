@@ -79,7 +79,11 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         String system = Optional
                 .ofNullable(SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(packageURL.getType()))
                 .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
-        String name = packageURL.getName();
+        String name = Optional.ofNullable(packageURL.getNamespace())
+                .filter(ns -> !ns.isEmpty())
+                .map(ns -> ns + ":")
+                .orElse("")
+                + packageURL.getName();
 
         // collect latest version
         Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
