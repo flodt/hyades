@@ -32,7 +32,7 @@ import java.util.stream.StreamSupport;
 @ApplicationScoped
 public class DepsDevApiClient extends ApiClient {
     public Optional<String> fetchLatestVersion(String system, String name) {
-        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name);
+        String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name);
         return requestParseJsonForResult(url, (root) -> {
             JsonNode versionsNode = root.get("versions");
             return StreamSupport
@@ -45,13 +45,13 @@ public class DepsDevApiClient extends ApiClient {
     }
 
     public Optional<Integer> fetchDependents(String system, String name, String version) {
-        String url = "https://api.deps.dev/v3alpha/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
+        String url = "https://api.deps.dev/v3alpha/systems/" + urlEncode(system) + "/packages/" + urlEncode(name)
                 + "/versions/" + urlEncode(version) + ":dependents";
         return requestParseJsonForResult(url, root -> Optional.of(root.path("dependentCount").asInt()));
     }
 
     public Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
-        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
+        String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name)
                 + "/versions/" + urlEncode(version);
         return requestParseJsonForResult(url, (root) -> {
             JsonNode relatedProjectsNode = root.get("relatedProjects");
