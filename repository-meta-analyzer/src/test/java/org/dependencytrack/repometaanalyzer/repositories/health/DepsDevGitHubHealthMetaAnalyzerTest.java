@@ -86,7 +86,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
             // Stub out GitHubApiClient construction
             try (MockedConstruction<GitHubApiClient> ghMock = Mockito.mockConstruction(GitHubApiClient.class, (mock, ctx) -> {
                 // tell it the connection was OK
-                when(mock.didConnectionFail()).thenReturn(false);
+                when(mock.connect()).thenReturn(true);
                 // stub fetchDataFromGitHub(...)
                 ComponentHealthMetaModel ghData = new ComponentHealthMetaModel(null);
                 ghData.setContributors(42);
@@ -172,7 +172,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
             when(mock.fetchScorecardAndStarsForksForProject("github.com/foo/left-pad")).thenReturn(Optional.of(score));
         })) {
             try (MockedConstruction<GitHubApiClient> ghMock = Mockito.mockConstruction(GitHubApiClient.class, (mock, ctx) -> {
-                when(mock.didConnectionFail()).thenReturn(false);
+                when(mock.connect()).thenReturn(true);
                 ComponentHealthMetaModel ghData = new ComponentHealthMetaModel(null);
                 ghData.setContributors(11);
                 when(mock.fetchDataFromGitHub("github.com/foo/left-pad")).thenReturn(Optional.of(ghData));
@@ -248,7 +248,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
             when(mock.fetchScorecardAndStarsForksForProject("github.com/apache/commons-lang")).thenReturn(Optional.of(score));
         })) {
             try (MockedConstruction<GitHubApiClient> ghMock = Mockito.mockConstruction(GitHubApiClient.class, (mock, ctx) -> {
-                when(mock.didConnectionFail()).thenReturn(true);  // connection fails
+                when(mock.connect()).thenReturn(false);  // connection fails
             })) {
                 PackageURL purl = new PackageURL("maven", "org.apache.commons", "commons-lang3", "3.12.0", null, null);
                 ComponentHealthMetaModel result = analyzer.analyze(purl);
@@ -276,7 +276,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
             when(mock.fetchScorecardAndStarsForksForProject("github.com/gin-gonic/gin")).thenReturn(Optional.empty());  // no scorecard
         })) {
             try (MockedConstruction<GitHubApiClient> ghMock = Mockito.mockConstruction(GitHubApiClient.class, (mock, ctx) -> {
-                when(mock.didConnectionFail()).thenReturn(false);
+                when(mock.connect()).thenReturn(true);
                 ComponentHealthMetaModel ghData = new ComponentHealthMetaModel(null);
                 ghData.setContributors(99);
                 when(mock.fetchDataFromGitHub("github.com/gin-gonic/gin")).thenReturn(Optional.of(ghData));

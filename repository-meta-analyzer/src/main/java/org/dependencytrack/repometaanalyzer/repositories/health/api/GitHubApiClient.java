@@ -41,42 +41,38 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
+    private final Repository credentials;
 
     @Inject
     SecretDecryptor secretDecryptor;
 
-    private final GitHub gitHub;
-
-    private final boolean connectionSuccessful;
+    private GitHub gitHub;
 
     public GitHubApiClient(Repository credentials) {
-        GitHub gh;
-        boolean success;
+        this.credentials = credentials;
+    }
 
+    public boolean connect() {
         try {
             String user = credentials.getUsername();
             String password = secretDecryptor.decryptAsString(credentials.getPassword());
-            gh = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
-            success = true;
+            this.gitHub = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
+            return true;
         } catch (IOException e) {
             logger.warn("Failed to connect to GitHub", e);
-            gh = null;
-            success = false;
         } catch (Exception e) {
             logger.warn("Credentials retrieval failed", e);
-            gh = null;
-            success = false;
         }
 
-        this.gitHub = gh;
-        this.connectionSuccessful = success;
-    }
-
-    public boolean didConnectionFail() {
-        return !connectionSuccessful;
+        return false;
     }
 
     public Optional<ComponentHealthMetaModel> fetchDataFromGitHub(String project) {
+        if (this.gitHub == null) {
+            logger.warn("GitHub client is not connected - did you forget to call .connect()?");
+            return Optional.empty();
+        }
+
         try {
             ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
             GHRepository repository = gitHub.getRepository(project.replace("github.com/", ""));
@@ -161,7 +157,8 @@ public class GitHubApiClient extends ApiClient {
                         .sum();
 
                 Instant created = repository.getCreatedAt().toInstant();
-                long weeks = ChronoUnit.WEEKS.between(created, Instant.now());
+                long days = ChronoUnit.DAYS.between(created, Instant.now());
+                long weeks = days / 7;
                 if (weeks <= 0) {
                     // brand‑new repo: count all commits as one week
                     return (float) totalCommits;

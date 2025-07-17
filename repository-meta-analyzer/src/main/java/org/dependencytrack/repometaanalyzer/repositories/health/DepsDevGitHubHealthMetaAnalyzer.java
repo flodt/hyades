@@ -125,7 +125,8 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         Repository configuration = maybeRepository.get();
 
         GitHubApiClient gitHubApiClient = new GitHubApiClient(configuration);
-        if (gitHubApiClient.didConnectionFail()) {
+        boolean connectionSuccessful = gitHubApiClient.connect();
+        if (connectionSuccessful) {
             logger.warn("Could not connect to GitHub.");
             return metaModel;
         }
