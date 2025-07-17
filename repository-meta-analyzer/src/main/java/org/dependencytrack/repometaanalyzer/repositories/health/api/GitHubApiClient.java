@@ -153,7 +153,8 @@ public class GitHubApiClient extends ApiClient {
                         .mapToInt(GHRepositoryStatistics.ContributorStats::getTotal)
                         .sum();
 
-                Instant created = repository.getCreatedAt().toInstant();
+                // needs static helper method for testability - see GitHubApiClientTest
+                Instant created = GitHubUtil.getRepositoryCreatedAt(repository).toInstant();
                 long days = ChronoUnit.DAYS.between(created, Instant.now());
                 long weeks = days / 7;
                 if (weeks <= 0) {

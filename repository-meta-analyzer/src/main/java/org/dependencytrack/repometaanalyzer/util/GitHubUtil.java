@@ -18,9 +18,11 @@
  */
 package org.dependencytrack.repometaanalyzer.util;
 
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
+import java.util.Date;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -39,5 +41,9 @@ public final class GitHubUtil {
             github = GitHub.connectAnonymously();
         }
         return github;
+    }
+
+    public static Date getRepositoryCreatedAt(final GHRepository repo) throws IOException {
+        return repo.getCreatedAt();
     }
 }

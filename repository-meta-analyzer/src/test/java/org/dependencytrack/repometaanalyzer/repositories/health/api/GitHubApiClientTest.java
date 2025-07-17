@@ -36,6 +36,8 @@ import org.kohsuke.github.GHTreeEntry;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterable;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -165,11 +167,22 @@ public class GitHubApiClientTest {
             when(statsPaged.toList()).thenReturn(List.of(cs1, cs2, cs3));
             when(stats.getContributorStats()).thenReturn(statsPaged);
             when(repo.getStatistics()).thenReturn(stats);
+
+            /*
+                We originally want to do this: doReturn(fakeDate).when(repo).getCreatedAt(); - this would be fitting
+                when the SUT calls repository.getCreatedAt() to determine the date.
+                However:
+                The Mockito stub is flaky because @WithBridgeMethods in GHObject injects a synthetic bridge method
+                (getCreatedAt(): String) alongside the real one (getCreatedAt(): Date), and Mockito sometimes picks the
+                wrong overload, leading to intermittent test failures. We also can’t mock the underlying static date
+                parser this call is delegated to (package‑private...).
+
+                So we wrap the call in the SUT in the helper GitHubUtil.getRepositoryCreatedAt(), and statically mock
+                this one here in the test.
+             */
             // created 4 weeks ago → commitFrequencyWeekly = (8+5+7)/4 = 5
             Date fakeDate = Date.from(Instant.now().minus(4 * 7, ChronoUnit.DAYS));
-            doReturn(fakeDate)
-                    .when(repo)
-                    .getCreatedAt();
+            ghUtil.when(() -> GitHubUtil.getRepositoryCreatedAt(repo)).thenReturn(fakeDate);
 
             // Execute
             Optional<ComponentHealthMetaModel> opt = client.fetchDataFromGitHub("github.com/owner/rep");
@@ -185,7 +198,9 @@ public class GitHubApiClientTest {
             assertThat(m.getFiles()).isEqualTo(2);
             assertThat(m.getIsRepoArchived()).isTrue();
             assertThat(m.getAvgIssueAgeDays()).isEqualTo(0);
+
             assertThat(m.getCommitFrequencyWeekly()).isEqualTo(5.0f);
+
             // busFactor: total=20, half=10, sorted [8,7,5]: takeWhile <10 → only 8 (+ 1 to get over) = 2
             assertThat(m.getBusFactor()).isEqualTo(2);
         }
