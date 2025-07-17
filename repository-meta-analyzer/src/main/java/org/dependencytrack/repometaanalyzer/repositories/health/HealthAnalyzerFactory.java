@@ -31,8 +31,7 @@ import java.util.function.Supplier;
 @ApplicationScoped
 public class HealthAnalyzerFactory {
     private static final List<Supplier<IHealthMetaAnalyzer>> healthAnalyzers = List.of(
-            DummyHealthMetaAnalyzer::new
-            // todo: add analyzer constructors here
+            DepsDevGitHubHealthMetaAnalyzer::new
     );
 
     /**
