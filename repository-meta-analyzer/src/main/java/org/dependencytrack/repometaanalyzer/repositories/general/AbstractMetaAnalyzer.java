@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories;
+package org.dependencytrack.repometaanalyzer.repositories.general;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;

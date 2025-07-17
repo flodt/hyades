@@ -16,27 +16,34 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-
-package org.dependencytrack.repometaanalyzer.repositories;
+package org.dependencytrack.repometaanalyzer.repositories.general;
 
 import com.github.packageurl.PackageURL;
+import org.apache.http.impl.client.HttpClients;
 import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.repometaanalyzer.model.MetaModel;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class CargoMetaAnalyzerTest {
+class HackageMetaAnalyzerTest {
+
+    private IMetaAnalyzer analyzer;
+
+    @BeforeEach
+    void beforeEach() {
+        analyzer = new HackageMetaAnalyzer();
+        analyzer.setHttpClient(HttpClients.createDefault());
+    }
+
     @Test
-    public void testAnalyzer() throws Exception {
+    void testAnalyzer() throws Exception {
         Component component = new Component();
-        component.setPurl(new PackageURL("pkg:cargo/rand@0.7.2"));
-
-        CargoMetaAnalyzer analyzer = new CargoMetaAnalyzer();
+        component.setPurl(new PackageURL("pkg:hackage/singletons-th@3.1"));
         Assert.assertTrue(analyzer.isApplicable(component));
-        Assert.assertEquals(RepositoryType.CARGO, analyzer.supportedRepositoryType());
+        Assert.assertEquals(RepositoryType.HACKAGE, analyzer.supportedRepositoryType());
         MetaModel metaModel = analyzer.analyze(component);
         Assert.assertNotNull(metaModel.getLatestVersion());
-        Assert.assertNotNull(metaModel.getPublishedTimestamp());
-    }    
+    }
 }

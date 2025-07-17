@@ -35,7 +35,7 @@ import org.dependencytrack.proto.KafkaProtobufSerde;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.repometaanalyzer.processor.MetaAnalyzerProcessorSupplier;
-import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.general.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.serde.KafkaPurlSerde;
 import org.dependencytrack.repometaanalyzer.util.PurlUtil;
 

@@ -55,7 +55,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.FetchMeta;
 import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
-import org.dependencytrack.repometaanalyzer.repositories.RepositoryAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.general.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.serde.KafkaPurlSerde;

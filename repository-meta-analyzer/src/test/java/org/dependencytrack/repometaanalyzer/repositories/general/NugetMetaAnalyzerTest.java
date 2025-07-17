@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories;
+package org.dependencytrack.repometaanalyzer.repositories.general;
 
 import com.github.packageurl.PackageURL;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -44,7 +44,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.dependencytrack.repometaanalyzer.repositories.NugetMetaAnalyzer.SUPPORTED_DATE_FORMATS;
+import static org.dependencytrack.repometaanalyzer.repositories.general.NugetMetaAnalyzer.SUPPORTED_DATE_FORMATS;
 
 class NugetMetaAnalyzerTest {
     private IMetaAnalyzer analyzer;

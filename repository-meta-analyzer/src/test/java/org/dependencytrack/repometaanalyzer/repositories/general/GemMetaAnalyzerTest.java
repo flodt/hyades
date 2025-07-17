@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories;
+package org.dependencytrack.repometaanalyzer.repositories.general;
 
 import com.github.packageurl.PackageURL;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -36,9 +36,11 @@ import org.junit.jupiter.api.Test;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.junit.Assert.assertThrows;
 
-class HexMetaAnalyzerTest {
+class GemMetaAnalyzerTest {
+
+    private IMetaAnalyzer analyzer;
+
 
     static WireMockServer wireMockServer;
 
@@ -48,11 +50,9 @@ class HexMetaAnalyzerTest {
         wireMockServer.resetAll();
     }
 
-    private IMetaAnalyzer analyzer;
-
     @BeforeEach
     void beforeEach() {
-        analyzer = new HexMetaAnalyzer();
+        analyzer = new GemMetaAnalyzer();
         analyzer.setHttpClient(HttpClients.createDefault());
         wireMockServer = new WireMockServer(1080);
         wireMockServer.start();
@@ -61,25 +61,37 @@ class HexMetaAnalyzerTest {
     @Test
     void testAnalyzer() throws Exception {
         Component component = new Component();
-        component.setPurl(new PackageURL("pkg:hex/phoenix@1.4.10"));
-
-        Assertions.assertEquals("HexMetaAnalyzer", analyzer.getName());
+        component.setPurl(new PackageURL("pkg:gem/test-unit@3.2.0"));
+        Assertions.assertEquals("GemMetaAnalyzer", analyzer.getName());
         Assertions.assertTrue(analyzer.isApplicable(component));
-        Assertions.assertEquals(RepositoryType.HEX, analyzer.supportedRepositoryType());
+        Assertions.assertEquals(RepositoryType.GEM, analyzer.supportedRepositoryType());
         MetaModel metaModel = analyzer.analyze(component);
         Assertions.assertNotNull(metaModel.getLatestVersion());
-        Assertions.assertNotNull(metaModel.getPublishedTimestamp());
+        //Assert.assertNotNull(metaModel.getPublishedTimestamp()); // todo: not yet supported
+    }
+
+    @Test
+    void testAnalyzerInvalidComponentVersion() throws Exception {
+        Component component = new Component();
+        component.setPurl(new PackageURL("pkg:gem/test3-unit@3.2.0"));
+        Assertions.assertEquals("GemMetaAnalyzer", analyzer.getName());
+        Assertions.assertTrue(analyzer.isApplicable(component));
+        Assertions.assertEquals(RepositoryType.GEM, analyzer.supportedRepositoryType());
+        MetaModel metaModel = analyzer.analyze(component);
+        Assertions.assertNull(metaModel.getLatestVersion());
     }
 
     @Test
     void testAnalyzerDoesNotFindResult() throws Exception {
         Component component = new Component();
-        component.setPurl(new PackageURL("pkg:hex/package-does-not-exist@v1.2.0"));
+        component.setPurl(new PackageURL("pkg:gem/package-does-not-exist@v1.2.0"));
         analyzer.setRepositoryBaseUrl(String.format("http://localhost:%d", wireMockServer.port()));
-        wireMockServer.stubFor(get(urlPathEqualTo("/hello"))
+
+        wireMockServer.stubFor(get(urlPathEqualTo(""))
                 .willReturn(aResponse().withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                         .withResponseBody(Body.ofBinaryOrText("Not found".getBytes(),
                                 new ContentTypeHeader("application/json"))).withStatus(HttpStatus.SC_NOT_FOUND)));
+
         MetaModel metaModel = analyzer.analyze(component);
 
         Assertions.assertNull(metaModel.getLatestVersion());
@@ -91,12 +103,13 @@ class HexMetaAnalyzerTest {
     @Test
     void testAnalyzerReturnEmptyResult() throws Exception {
         Component component = new Component();
-        component.setPurl(new PackageURL("pkg:hex/typo3/package-empty-result@v1.2.0"));
+        component.setPurl(new PackageURL("pkg:gem/typo3/package-empty-result@v1.2.0"));
         analyzer.setRepositoryBaseUrl(String.format("http://localhost:%d", wireMockServer.port()));
         wireMockServer.stubFor(get(urlPathEqualTo("/p/typo3/package-empty-result.json"))
                 .willReturn(aResponse().withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                        .withResponseBody(Body.ofBinaryOrText("hello test".getBytes(),
+                        .withResponseBody(Body.ofBinaryOrText("".getBytes(),
                                 new ContentTypeHeader("application/json"))).withStatus(HttpStatus.SC_OK)));
+
         MetaModel metaModel = analyzer.analyze(component);
 
         Assertions.assertNull(metaModel.getLatestVersion());
@@ -108,24 +121,19 @@ class HexMetaAnalyzerTest {
     @Test
     void testAnalyzerReturnEmptyResultWithBraces() throws Exception {
         Component component = new Component();
-        component.setPurl(new PackageURL("pkg:hex/typo3/package-empty-result@v1.2.0"));
+        component.setPurl(new PackageURL("pkg:gem/typo3/package-empty-result@v1.2.0"));
         analyzer.setRepositoryBaseUrl(String.format("http://localhost:%d", wireMockServer.port()));
+
         wireMockServer.stubFor(get(urlPathEqualTo("/p/typo3/package-empty-result.json"))
                 .willReturn(aResponse().withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                         .withResponseBody(Body.ofBinaryOrText("{}".getBytes(),
                                 new ContentTypeHeader("application/json"))).withStatus(HttpStatus.SC_OK)));
+
         MetaModel metaModel = analyzer.analyze(component);
 
         Assertions.assertNull(metaModel.getLatestVersion());
         Assertions.assertNull(
                 metaModel.getPublishedTimestamp()
         );
-    }
-
-    @Test
-    void testIntegrityAnalyzerNotSupported() {
-        Component component = new Component();
-        component.setPurl("pkg:pypi/typo3/package-empty-result@v1.2.0");
-        assertThrows(UnsupportedOperationException.class, () -> analyzer.getIntegrityMeta(component));
     }
 }

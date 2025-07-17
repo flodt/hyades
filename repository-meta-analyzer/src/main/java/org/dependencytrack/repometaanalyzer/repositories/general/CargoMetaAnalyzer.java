@@ -17,7 +17,7 @@
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
 
-package org.dependencytrack.repometaanalyzer.repositories;
+package org.dependencytrack.repometaanalyzer.repositories.general;
 
 import com.github.packageurl.PackageURL;
 import org.apache.http.HttpEntity;
