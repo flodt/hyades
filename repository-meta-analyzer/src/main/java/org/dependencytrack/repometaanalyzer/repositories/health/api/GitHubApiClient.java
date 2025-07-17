@@ -18,6 +18,7 @@
  */
 package org.dependencytrack.repometaanalyzer.repositories.health.api;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.dependencytrack.common.SecretDecryptor;
 import org.dependencytrack.persistence.model.Repository;
@@ -39,20 +40,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@ApplicationScoped
 public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
-    private final Repository credentials;
 
     @Inject
     SecretDecryptor secretDecryptor;
 
     private GitHub gitHub;
 
-    public GitHubApiClient(Repository credentials) {
-        this.credentials = credentials;
-    }
-
-    public boolean connect() {
+    public boolean connect(Repository credentials) {
         try {
             String user = credentials.getUsername();
             String password = secretDecryptor.decryptAsString(credentials.getPassword());

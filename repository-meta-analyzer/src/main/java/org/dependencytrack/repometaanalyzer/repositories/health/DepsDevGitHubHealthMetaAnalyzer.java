@@ -19,6 +19,7 @@
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.Repository;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@ApplicationScoped
 public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
     private static final Map<String, String> SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM = Map.ofEntries(
             Map.entry(PackageURL.StandardTypes.NPM, "NPM"),
@@ -45,6 +47,12 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
 
     @Inject
     RepoEntityRepository repoEntityRepository;
+
+    @Inject
+    DepsDevApiClient depsDevApiClient;
+
+    @Inject
+    GitHubApiClient gitHubApiClient;
 
     @Override
     public boolean isApplicable(PackageURL packageURL) {
@@ -74,7 +82,6 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         String name = packageURL.getName();
 
         // collect latest version
-        DepsDevApiClient depsDevApiClient = new DepsDevApiClient();
         Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
         if (maybeVersion.isEmpty()) {
             logger.warn("Could not determine latest version for {}", packageURL);
@@ -124,9 +131,8 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         Repository configuration = maybeRepository.get();
 
-        GitHubApiClient gitHubApiClient = new GitHubApiClient(configuration);
-        boolean connectionSuccessful = gitHubApiClient.connect();
-        if (connectionSuccessful) {
+        boolean connectionSuccessful = gitHubApiClient.connect(configuration);
+        if (!connectionSuccessful) {
             logger.warn("Could not connect to GitHub.");
             return metaModel;
         }

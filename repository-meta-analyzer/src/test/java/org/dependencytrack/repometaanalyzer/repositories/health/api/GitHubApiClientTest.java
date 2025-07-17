@@ -69,7 +69,7 @@ public class GitHubApiClientTest {
         mockDecryptor = mock(SecretDecryptor.class);
 
         // Create client and inject decryptor
-        client = new GitHubApiClient(credentials);
+        client = new GitHubApiClient();
         client.secretDecryptor = mockDecryptor;
     }
 
@@ -77,7 +77,7 @@ public class GitHubApiClientTest {
     void connect_failsOnDecrypt_andDidConnectionFail() throws Exception {
         // Decrypt throws
         when(mockDecryptor.decryptAsString("enc‐pw")).thenThrow(new Exception("bad"));
-        assertThat(client.connect()).isFalse();
+        assertThat(client.connect(credentials)).isFalse();
     }
 
     @Test
@@ -86,7 +86,7 @@ public class GitHubApiClientTest {
         try (var ghUtil = mockStatic(GitHubUtil.class)) {
             ghUtil.when(() -> GitHubUtil.connectToGitHub(any(), any(), any()))
                     .thenThrow(new IOException("net"));
-            assertThat(client.connect()).isFalse();
+            assertThat(client.connect(credentials)).isFalse();
         }
     }
 
@@ -104,7 +104,7 @@ public class GitHubApiClientTest {
         try (var ghUtil = mockStatic(GitHubUtil.class)) {
             ghUtil.when(() -> GitHubUtil.connectToGitHub("user", "token", GitHubApiClient.GITHUB_URL))
                     .thenReturn(fakeGh);
-            assertThat(client.connect()).isTrue();
+            assertThat(client.connect(credentials)).isTrue();
 
             // 2) GHRepository stub
             GHRepository repo = mock(GHRepository.class);
@@ -199,7 +199,7 @@ public class GitHubApiClientTest {
         try (var ghUtil = mockStatic(GitHubUtil.class)) {
             ghUtil.when(() -> GitHubUtil.connectToGitHub(any(), any(), any()))
                     .thenReturn(fakeGh);
-            assertThat(client.connect()).isTrue();
+            assertThat(client.connect(credentials)).isTrue();
 
             // repo stub
             GHRepository repo = mock(GHRepository.class);

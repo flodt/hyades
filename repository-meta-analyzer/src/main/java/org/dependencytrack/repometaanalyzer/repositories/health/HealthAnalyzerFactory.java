@@ -20,19 +20,23 @@ package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Factory for creating health metadata analyzers.
  */
 @ApplicationScoped
 public class HealthAnalyzerFactory {
-    private static final List<Supplier<IHealthMetaAnalyzer>> healthAnalyzers = List.of(
-            DepsDevGitHubHealthMetaAnalyzer::new
-    );
+    private final Instance<IHealthMetaAnalyzer> healthAnalyzers;
+
+    @Inject
+    public HealthAnalyzerFactory(Instance<IHealthMetaAnalyzer> healthAnalyzers) {
+        this.healthAnalyzers = healthAnalyzers;
+    }
 
     /**
      * Return all applicable health analyzers for the given package URL
@@ -43,8 +47,7 @@ public class HealthAnalyzerFactory {
         List<IHealthMetaAnalyzer> analyzers = new ArrayList<>();
 
         // initialize and check analyzers
-        for (Supplier<IHealthMetaAnalyzer> supplier : healthAnalyzers) {
-            IHealthMetaAnalyzer analyzer = supplier.get();
+        for (IHealthMetaAnalyzer analyzer : healthAnalyzers) {
             if (analyzer != null && analyzer.isApplicable(purl)) {
                 analyzers.add(analyzer);
             }
