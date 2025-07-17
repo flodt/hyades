@@ -40,9 +40,4 @@ public final class GitHubUtil {
         }
         return github;
     }
-
-    @FunctionalInterface
-    public interface ThrowingAPICall<T> {
-        T call() throws IOException, InterruptedException;
-    }
 }

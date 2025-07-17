@@ -18,34 +18,20 @@
  */
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.github.packageurl.PackageURL;
 import jakarta.inject.Inject;
-import org.dependencytrack.common.SecretDecryptor;
 import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
-import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
-import org.dependencytrack.repometaanalyzer.util.GitHubUtil;
-import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHRepositoryStatistics;
+import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient;
+import org.dependencytrack.repometaanalyzer.repositories.health.api.GitHubApiClient;
 import org.kohsuke.github.GitHub;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.StreamSupport;
 
 public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer {
     private static final Map<String, String> SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM = Map.ofEntries(
@@ -58,13 +44,8 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
             Map.entry(PackageURL.StandardTypes.GEM, "RUBYGEMS")
     );
 
-    private static final String GITHUB_URL = "https://github.com";
-
     @Inject
     RepoEntityRepository repoEntityRepository;
-
-    @Inject
-    SecretDecryptor secretDecryptor;
 
     @Override
     public boolean isApplicable(PackageURL packageURL) {
@@ -93,8 +74,10 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
                 .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
         String name = packageURL.getName();
 
+        DepsDevApiClient depsDevApiClient = new DepsDevApiClient(httpClient);
+
         // collect latest version
-        Optional<String> maybeVersion = fetchLatestVersion(system, name);
+        Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
         if (maybeVersion.isEmpty()) {
             logger.warn("Could not determine latest version for {}", packageURL);
             return metaModel;
@@ -102,7 +85,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         String version = maybeVersion.get();
 
         // Collect dependents count for this package version candidate
-        Optional<Integer> maybeDependents = fetchDependents(system, name, version);
+        Optional<Integer> maybeDependents = depsDevApiClient.fetchDependents(system, name, version);
         if (maybeDependents.isEmpty()) {
             logger.warn("Could not determine dependents for {}", packageURL);
             // fallthrough
@@ -110,7 +93,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         maybeDependents.ifPresent(metaModel::setDependents);
 
         // collect package information on this candidate version
-        Optional<String> maybeProject = fetchSourceRepoProjectKey(system, name, version);
+        Optional<String> maybeProject = depsDevApiClient.fetchSourceRepoProjectKey(system, name, version);
         if (maybeProject.isEmpty()) {
             logger.warn("Could not determine source code project for {}", packageURL);
             return metaModel;
@@ -118,7 +101,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         String project = maybeProject.get();
 
         // Collect OpenSSF Scorecard for this project
-        Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = fetchScorecardAndStarsForksForProject(project);
+        Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = depsDevApiClient.fetchScorecardAndStarsForksForProject(project);
         if (maybeScorecardStarsForks.isEmpty()) {
             logger.warn("Could not determine scorecard for {}", packageURL);
             // we can continue with the GitHub API even without the scorecard; fallthrough
@@ -135,7 +118,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         Optional<Repository> maybeRepository = repoEntityRepository
                 .findEnabledRepositoriesByType(RepositoryType.GITHUB)
                 .stream()
-                .filter(repo -> Objects.equals(repo.getUrl(), GITHUB_URL))
+                .filter(repo -> Objects.equals(repo.getUrl(), GitHubApiClient.GITHUB_URL))
                 .findFirst();
         if (maybeRepository.isEmpty()) {
             logger.warn("Could not find GitHub configuration.");
@@ -143,14 +126,15 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         Repository configuration = maybeRepository.get();
 
-        Optional<GitHub> maybeGitHub = connectToGitHubWith(configuration);
+        GitHubApiClient gitHubApiClient = new GitHubApiClient(httpClient);
+        Optional<GitHub> maybeGitHub = gitHubApiClient.connectToGitHubWith(configuration);
         if (maybeGitHub.isEmpty()) {
             logger.warn("Could not connect to GitHub.");
             return metaModel;
         }
         GitHub gitHub = maybeGitHub.get();
 
-        Optional<ComponentHealthMetaModel> maybeGitHubData = fetchDataFromGitHub(gitHub, project);
+        Optional<ComponentHealthMetaModel> maybeGitHubData = gitHubApiClient.fetchDataFromGitHub(gitHub, project);
         if (maybeGitHubData.isEmpty()) {
             logger.warn("Failed to fetch GitHub data for {}", packageURL);
             return metaModel;
@@ -158,218 +142,5 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         maybeGitHubData.ifPresent(metaModel::mergeFrom);
 
         return metaModel;
-    }
-
-    private Optional<String> fetchLatestVersion(String system, String name) {
-        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name);
-        return requestParseJsonForResult(url, (root) -> {
-            JsonNode versionsNode = root.get("versions");
-            return StreamSupport
-                    .stream(versionsNode.spliterator(), false)
-                    .filter(n -> n.path("isDefault").asBoolean(false))
-                    .map(n -> n.path("versionKey").path("version").asText(null))
-                    .filter(Objects::nonNull)
-                    .findFirst();
-        });
-    }
-
-    private Optional<Integer> fetchDependents(String system, String name, String version) {
-        String url = "https://api.deps.dev/v3alpha/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
-                + "/versions/" + urlEncode(version) + ":dependents";
-        return requestParseJsonForResult(url, root -> Optional.of(root.path("dependentCount").asInt()));
-    }
-
-    private Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
-        String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name)
-                + "/versions/" + urlEncode(version);
-        return requestParseJsonForResult(url, (root) -> {
-            JsonNode relatedProjectsNode = root.get("relatedProjects");
-            return StreamSupport
-                    .stream(relatedProjectsNode.spliterator(), false)
-                    .filter(n -> "SOURCE_REPO".equals(n.path("relationType").asText()))
-                    .map(n -> n.path("projectKey").path("id").asText())
-                    .filter(Objects::nonNull)
-                    .findFirst();
-        });
-    }
-
-    private Optional<ComponentHealthMetaModel> fetchScorecardAndStarsForksForProject(String project) {
-        String url = "https://api.deps.dev/v3/projects/" + urlEncode(project);
-        return requestParseJsonForResult(url, (root) -> {
-            ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
-
-            metaModel.setOpenIssues(root.path("openIssuesCount").asInt());
-            metaModel.setStars(root.path("starsCount").asInt());
-            metaModel.setForks(root.path("forksCount").asInt());
-            metaModel.setScoreCardReferenceVersion(
-                    root.path("scorecard").path("scorecard").path("version").asText()
-            );
-            metaModel.setScoreCardTimestamp(Instant.parse(root.path("scorecard").path("date").asText()));
-            metaModel.setScoreCardScore((float) root.path("scorecard").path("overallScore").asDouble());
-
-            List<ScoreCardCheck> scoreCardChecks = StreamSupport
-                    .stream(root.path("scorecard").path("checks").spliterator(), false)
-                    .map(node -> {
-                        ScoreCardCheck check = new ScoreCardCheck();
-                        check.setName(node.path("name").asText());
-                        check.setScore((float) node.path("score").asDouble());
-                        check.setDescription(node.path("documentation").path("shortDescription").asText());
-                        check.setDocumentationUrl(node.path("documentation").path("url").asText());
-                        check.setReason(node.path("reason").asText());
-                        check.setDetails(
-                                StreamSupport
-                                        .stream(node.path("details").spliterator(), false)
-                                        .map(JsonNode::asText)
-                                        .toList()
-                        );
-                        return check;
-                    })
-                    .toList();
-            metaModel.setScoreCardChecks(scoreCardChecks);
-
-            return Optional.of(metaModel);
-        });
-    }
-
-    private Optional<GitHub> connectToGitHubWith(Repository credentials) {
-        try {
-            String user = credentials.getUsername();
-            String password = secretDecryptor.decryptAsString(credentials.getPassword());
-            GitHub github = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
-            return Optional.of(github);
-        } catch (IOException e) {
-            logger.warn("Failed to connect to GitHub", e);
-            return Optional.empty();
-        } catch (Exception e) {
-            logger.warn("Credentials retrieval failed", e);
-            return Optional.empty();
-        }
-    }
-
-    private Optional<ComponentHealthMetaModel> fetchDataFromGitHub(GitHub gitHub, String project) {
-        try {
-            ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
-            GHRepository repository = gitHub.getRepository(project.replace("github.com/", ""));
-
-            metaModel.setContributors(safeFetchValue(() -> repository.listContributors().toList().size(), null));
-            metaModel.setOpenPRs(safeFetchValue(() -> repository.getPullRequests(GHIssueState.OPEN).size(), null));
-            metaModel.setLastCommitDate(safeFetchValue(() -> {
-                String head = repository.getBranch(repository.getDefaultBranch()).getSHA1();
-                return repository.getCommit(head).getCommitDate().toInstant();
-            }, null));
-
-            metaModel.setHasReadme(safeFetchValue(() -> {
-                repository.getReadme();
-                // if we didn't have a readme, we would have thrown here
-                return true;
-            }, false));
-
-            metaModel.setHasCodeOfConduct(safeFetchValue(() -> {
-                repository.getFileContent("CODE_OF_CONDUCT.md");
-                // see above
-                return true;
-            }, false));
-
-            metaModel.setHasSecurityPolicy(safeFetchValue(() -> {
-                repository.getFileContent(".github/SECURITY.md");
-                // see above
-                return true;
-            }, false));
-
-            metaModel.setFiles(
-                    safeFetchValue(() ->
-                                    (int) repository
-                                            .getTree(
-                                                    repository.getBranch(repository.getDefaultBranch()).getSHA1()
-                                            )
-                                            .getTree()
-                                            .stream()
-                                            .filter(Objects::nonNull)
-                                            .filter(entry -> "blob".equals(entry.getType()))
-                                            .count(),
-                            null)
-            );
-
-            metaModel.setIsRepoArchived(repository.isArchived());
-
-            metaModel.setAvgIssueAgeDays(
-                    safeFetchValue(() -> {
-                                List<GHIssue> issues = repository.getIssues(GHIssueState.OPEN);
-
-                                if (issues.isEmpty()) {
-                                    return 0;
-                                }
-
-                                long sumDays = 0;
-                                Instant now = Instant.now();
-
-                                for (GHIssue issue : issues) {
-                                    Instant created = issue.getCreatedAt().toInstant();
-                                    long age = Duration.between(created, now).toDays();
-                                    sumDays += age;
-                                }
-
-                                double avg = (double) sumDays / (double) issues.size();
-                                return (int) Math.round(avg);
-                            },
-                            null)
-            );
-
-            metaModel.setCommitFrequencyWeekly(safeFetchValue(() -> {
-                List<GHRepositoryStatistics.ContributorStats> stats = repository
-                        .getStatistics()
-                        .getContributorStats()
-                        .toList();
-
-                if (stats.isEmpty()) {
-                    throw new IOException("No contributor stats found, can't compute weekly commit frequency");
-                }
-
-                int totalCommits = stats
-                        .stream()
-                        .mapToInt(GHRepositoryStatistics.ContributorStats::getTotal)
-                        .sum();
-
-                Instant created = repository.getCreatedAt().toInstant();
-                long weeks = ChronoUnit.WEEKS.between(created, Instant.now());
-                if (weeks <= 0) {
-                    // brand‑new repo: count all commits as one week
-                    return (float) totalCommits;
-                }
-
-                return (float) totalCommits / (float) weeks;
-            }, null));
-
-            metaModel.setBusFactor(safeFetchValue(() -> {
-                List<GHRepositoryStatistics.ContributorStats> stats = repository
-                        .getStatistics()
-                        .getContributorStats()
-                        .toList();
-
-                if (stats.isEmpty()) {
-                    throw new IOException("No contributor stats found, can't compute bus factor");
-                }
-
-                int totalCommits = stats.stream()
-                        .mapToInt(GHRepositoryStatistics.ContributorStats::getTotal)
-                        .sum();
-                int halfCommits = totalCommits / 2;
-                AtomicInteger currentCommits = new AtomicInteger(0);
-
-                // the stream-expression is off-by-one because takeWhile stops 'before' the predicate is flipped
-                return 1 + (int) stats
-                        .stream()
-                        .map(GHRepositoryStatistics.ContributorStats::getTotal)
-                        .sorted(Comparator.reverseOrder())
-                        .map(currentCommits::addAndGet)
-                        .takeWhile(c -> c < halfCommits)
-                        .count();
-            }, null));
-
-            return Optional.of(metaModel);
-        } catch (IOException e) {
-            logger.warn("GitHub repository retrieval failed", e);
-            return Optional.empty();
-        }
     }
 }
