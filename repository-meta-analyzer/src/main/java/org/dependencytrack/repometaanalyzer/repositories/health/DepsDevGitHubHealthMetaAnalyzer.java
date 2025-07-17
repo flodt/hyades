@@ -19,6 +19,7 @@
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.dependencytrack.persistence.model.Component;
@@ -124,8 +125,9 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
 
         // Connect to GitHub
-        Optional<Repository> maybeRepository = repoEntityRepository
-                .findEnabledRepositoriesByType(RepositoryType.GITHUB)
+        Optional<Repository> maybeRepository = QuarkusTransaction
+                .joiningExisting()
+                .call(() -> repoEntityRepository.findEnabledRepositoriesByType(RepositoryType.GITHUB))
                 .stream()
                 .filter(repo -> Objects.equals(repo.getUrl(), GitHubApiClient.GITHUB_URL))
                 .findFirst();
