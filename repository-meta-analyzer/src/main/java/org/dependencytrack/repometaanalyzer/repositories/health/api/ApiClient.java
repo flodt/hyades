@@ -20,6 +20,8 @@ package org.dependencytrack.repometaanalyzer.repositories.health.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -35,13 +37,12 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public abstract class ApiClient {
-    private final CloseableHttpClient httpClient;
+    @Inject
+    @Named("httpClient")
+    CloseableHttpClient httpClient;
+
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final ObjectMapper mapper = new ObjectMapper();
-
-    public ApiClient(CloseableHttpClient httpClient) {
-        this.httpClient = httpClient;
-    }
 
     protected CloseableHttpResponse processHttpRequest(String url) throws IOException {
         final HttpUriRequest request = new HttpGet(url);

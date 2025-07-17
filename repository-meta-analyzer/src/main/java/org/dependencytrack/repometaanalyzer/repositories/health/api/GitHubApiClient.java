@@ -19,7 +19,6 @@
 package org.dependencytrack.repometaanalyzer.repositories.health.api;
 
 import jakarta.inject.Inject;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.dependencytrack.common.SecretDecryptor;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
@@ -46,26 +45,38 @@ public class GitHubApiClient extends ApiClient {
     @Inject
     SecretDecryptor secretDecryptor;
 
-    public GitHubApiClient(CloseableHttpClient httpClient) {
-        super(httpClient);
-    }
+    private final GitHub gitHub;
 
-    public Optional<GitHub> connectToGitHubWith(Repository credentials) {
+    private final boolean connectionSuccessful;
+
+    public GitHubApiClient(Repository credentials) {
+        GitHub gh;
+        boolean success;
+
         try {
             String user = credentials.getUsername();
             String password = secretDecryptor.decryptAsString(credentials.getPassword());
-            GitHub github = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
-            return Optional.of(github);
+            gh = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
+            success = true;
         } catch (IOException e) {
             logger.warn("Failed to connect to GitHub", e);
-            return Optional.empty();
+            gh = null;
+            success = false;
         } catch (Exception e) {
             logger.warn("Credentials retrieval failed", e);
-            return Optional.empty();
+            gh = null;
+            success = false;
         }
+
+        this.gitHub = gh;
+        this.connectionSuccessful = success;
     }
 
-    public Optional<ComponentHealthMetaModel> fetchDataFromGitHub(GitHub gitHub, String project) {
+    public boolean didConnectionFail() {
+        return !connectionSuccessful;
+    }
+
+    public Optional<ComponentHealthMetaModel> fetchDataFromGitHub(String project) {
         try {
             ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
             GHRepository repository = gitHub.getRepository(project.replace("github.com/", ""));

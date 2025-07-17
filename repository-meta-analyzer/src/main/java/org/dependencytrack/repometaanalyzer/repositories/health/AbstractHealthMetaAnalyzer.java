@@ -18,7 +18,6 @@
  */
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +26,7 @@ import org.slf4j.LoggerFactory;
  * Base abstract class that all IHealthMetaAnalyzer implementations should likely extend.
  */
 public abstract class AbstractHealthMetaAnalyzer implements IHealthMetaAnalyzer {
-    protected CloseableHttpClient httpClient;
-
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-
-    @Override
-    public void setHttpClient(CloseableHttpClient httpClient) {
-        this.httpClient = httpClient;
-    }
 
     @Override
     public String getName() {

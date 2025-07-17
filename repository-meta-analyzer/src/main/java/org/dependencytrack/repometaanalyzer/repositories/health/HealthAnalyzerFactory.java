@@ -20,8 +20,6 @@ package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Named;
-import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,16 +30,10 @@ import java.util.function.Supplier;
  */
 @ApplicationScoped
 public class HealthAnalyzerFactory {
-    private final CloseableHttpClient httpClient;
-
     private static final List<Supplier<IHealthMetaAnalyzer>> healthAnalyzers = List.of(
             DummyHealthMetaAnalyzer::new
             // todo: add analyzer constructors here
     );
-
-    HealthAnalyzerFactory(@Named("httpClient") final CloseableHttpClient httpClient) {
-        this.httpClient = httpClient;
-    }
 
     /**
      * Return all applicable health analyzers for the given package URL
@@ -59,7 +51,6 @@ public class HealthAnalyzerFactory {
             }
         }
 
-        analyzers.forEach(analyzer -> analyzer.setHttpClient(httpClient));
         return analyzers;
     }
 }

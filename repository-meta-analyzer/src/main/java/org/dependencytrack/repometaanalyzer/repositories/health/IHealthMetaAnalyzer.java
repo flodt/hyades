@@ -19,17 +19,9 @@
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 
 public interface IHealthMetaAnalyzer {
-    /**
-     * Sets the {@link CloseableHttpClient} to be used by the analyzer.
-     *
-     * @param httpClient The {@link CloseableHttpClient} to use
-     */
-    void setHttpClient(final CloseableHttpClient httpClient);
-
     /**
      * Returns if the analyzer is applicable for the component
      * @param packageURL the package URL

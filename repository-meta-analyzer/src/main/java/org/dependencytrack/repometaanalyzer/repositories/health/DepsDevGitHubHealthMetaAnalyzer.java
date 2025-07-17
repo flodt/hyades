@@ -27,7 +27,6 @@ import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient;
 import org.dependencytrack.repometaanalyzer.repositories.health.api.GitHubApiClient;
-import org.kohsuke.github.GitHub;
 
 import java.util.Map;
 import java.util.Objects;
@@ -74,9 +73,8 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
                 .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
         String name = packageURL.getName();
 
-        DepsDevApiClient depsDevApiClient = new DepsDevApiClient(httpClient);
-
         // collect latest version
+        DepsDevApiClient depsDevApiClient = new DepsDevApiClient();
         Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
         if (maybeVersion.isEmpty()) {
             logger.warn("Could not determine latest version for {}", packageURL);
@@ -126,15 +124,13 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
         Repository configuration = maybeRepository.get();
 
-        GitHubApiClient gitHubApiClient = new GitHubApiClient(httpClient);
-        Optional<GitHub> maybeGitHub = gitHubApiClient.connectToGitHubWith(configuration);
-        if (maybeGitHub.isEmpty()) {
+        GitHubApiClient gitHubApiClient = new GitHubApiClient(configuration);
+        if (gitHubApiClient.didConnectionFail()) {
             logger.warn("Could not connect to GitHub.");
             return metaModel;
         }
-        GitHub gitHub = maybeGitHub.get();
 
-        Optional<ComponentHealthMetaModel> maybeGitHubData = gitHubApiClient.fetchDataFromGitHub(gitHub, project);
+        Optional<ComponentHealthMetaModel> maybeGitHubData = gitHubApiClient.fetchDataFromGitHub(project);
         if (maybeGitHubData.isEmpty()) {
             logger.warn("Failed to fetch GitHub data for {}", packageURL);
             return metaModel;

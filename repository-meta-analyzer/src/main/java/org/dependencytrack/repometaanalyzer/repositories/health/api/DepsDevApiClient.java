@@ -19,7 +19,6 @@
 package org.dependencytrack.repometaanalyzer.repositories.health.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 
@@ -30,11 +29,6 @@ import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 public class DepsDevApiClient extends ApiClient {
-
-    public DepsDevApiClient(CloseableHttpClient httpClient) {
-        super(httpClient);
-    }
-
     public Optional<String> fetchLatestVersion(String system, String name) {
         String url = "https://api.deps.dev/v3/systems" + urlEncode(system) + "/packages/" + urlEncode(name);
         return requestParseJsonForResult(url, (root) -> {
