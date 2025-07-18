@@ -18,50 +18,78 @@
  */
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
+import com.github.packageurl.MalformedPackageURLException;
+import com.github.packageurl.PackageURL;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import org.dependencytrack.persistence.model.Repository;
+import org.dependencytrack.persistence.model.RepositoryType;
+import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient;
+import org.dependencytrack.repometaanalyzer.repositories.health.api.GitHubApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 public class DepsDevGitHubHealthMetaAnalyzerPersistenceTest {
     @Inject
-    EntityManager entityManager;
+    DepsDevGitHubHealthMetaAnalyzer analyzer;
 
     @Inject
-    DepsDevGitHubHealthMetaAnalyzer analyzer;
+    EntityManager entityManager;
+
+    @InjectMock
+    DepsDevApiClient depsDevApiClient;
+
+    @InjectMock
+    GitHubApiClient gitHubApiClient;
 
     @BeforeEach
     void beforeEach() {
-
+        when(depsDevApiClient.fetchLatestVersion(any(), any())).thenReturn(Optional.of("1.2.3"));
+        when(depsDevApiClient.fetchSourceRepoProjectKey(any(), any(), any()))
+                .thenReturn(Optional.of("github.com/example/foo"));
+        when(gitHubApiClient.connect(any())).thenReturn(false);
     }
 
     @Test
     @TestTransaction
-    void testGetsRepositoryData() {
-        entityManager.createNativeQuery("""
-                INSERT INTO "REPOSITORY" ("ID", "ENABLED", "IDENTIFIER", "INTERNAL", "PASSWORD", "RESOLUTION_ORDER", "TYPE", "URL", "USERNAME") VALUES
-                                    (1, 'true', 'github', 'false', 'password', 2, 'GITHUB', 'https://github.com', 'username');
-                """).executeUpdate();
+    void testGetsRepositoryData() throws MalformedPackageURLException {
+        Repository repo = new Repository();
+        repo.setEnabled(true);
+        repo.setIdentifier("github");
+        repo.setUrl("https://github.com");
+        repo.setUsername("username");
+        repo.setPassword("password");
+        repo.setResolutionOrder(2);
+        repo.setType(RepositoryType.GITHUB);
+        entityManager.persist(repo);
+        entityManager.flush();
 
-        Optional<Repository> maybeRepository = analyzer.retrieveGitHubRepositoryConfig();
-        assertThat(maybeRepository).isNotEmpty();
+        PackageURL purl = new PackageURL("pkg:maven/com.example/foo@1.2.3");
+        analyzer.analyze(purl);
 
-        Repository repository = maybeRepository.get();
-        assertThat(repository.getId()).isEqualTo(1);
-        assertThat(repository.isEnabled()).isTrue();
-        assertThat(repository.getIdentifier()).isEqualTo("github");
-        assertThat(repository.getPassword()).isEqualTo("password");
-        assertThat(repository.getResolutionOrder()).isEqualTo(2);
-        assertThat(repository.getType()).asString().isEqualTo("GITHUB");
-        assertThat(repository.getUrl()).isEqualTo("https://github.com");
-        assertThat(repository.getUsername()).isEqualTo("username");
+        verify(gitHubApiClient).connect(
+                argThat(
+                        cfg ->
+                                cfg.getId() == repo.getId()
+                                        && cfg.isEnabled()
+                                        && "github".equals(cfg.getIdentifier())
+                                        && "https://github.com".equals(cfg.getUrl())
+                                        && "username".equals(cfg.getUsername())
+                                        && "password".equals(cfg.getPassword())
+                                        && cfg.getResolutionOrder() == 2
+                                        && cfg.getType() == RepositoryType.GITHUB
+                )
+        );
     }
 }
