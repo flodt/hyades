@@ -40,7 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @ApplicationScoped
 public class GitHubApiClient extends ApiClient {
@@ -53,10 +53,16 @@ public class GitHubApiClient extends ApiClient {
 
     public boolean connect(Repository credentials) {
         try {
-            // decrypt only if we even have a password, the decryption method does not handle empty strings
             String user = credentials.getUsername();
             String password = credentials.getPassword();
-            if (isNotBlank(password)) password = secretDecryptor.decryptAsString(password);
+
+            // we need to be authenticated for our purposes
+            if (isBlank(password)) {
+                logger.info("No credential found for GitHub, can not use authenticated API functions");
+                return false;
+            }
+
+            password = secretDecryptor.decryptAsString(password);
 
             this.gitHub = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
             return true;
@@ -107,8 +113,9 @@ public class GitHubApiClient extends ApiClient {
             metaModel.setFiles(
                     safeFetchValue(() ->
                                     (int) repository
-                                            .getTree(
-                                                    repository.getBranch(repository.getDefaultBranch()).getSHA1()
+                                            .getTreeRecursive(
+                                                    repository.getBranch(repository.getDefaultBranch()).getSHA1(),
+                                                    1
                                             )
                                             .getTree()
                                             .stream()
