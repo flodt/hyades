@@ -125,12 +125,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         }
 
         // Connect to GitHub
-        Optional<Repository> maybeRepository = QuarkusTransaction
-                .joiningExisting()
-                .call(() -> repoEntityRepository.findEnabledRepositoriesByType(RepositoryType.GITHUB))
-                .stream()
-                .filter(repo -> Objects.equals(repo.getUrl(), GitHubApiClient.GITHUB_URL))
-                .findFirst();
+        Optional<Repository> maybeRepository = retrieveGitHubRepositoryConfig();
         if (maybeRepository.isEmpty()) {
             logger.warn("Could not find GitHub configuration.");
             return metaModel;
@@ -151,5 +146,14 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         maybeGitHubData.ifPresent(metaModel::mergeFrom);
 
         return metaModel;
+    }
+
+    Optional<Repository> retrieveGitHubRepositoryConfig() {
+        return QuarkusTransaction
+                .joiningExisting()
+                .call(() -> repoEntityRepository.findEnabledRepositoriesByType(RepositoryType.GITHUB))
+                .stream()
+                .filter(repo -> Objects.equals(repo.getUrl(), GitHubApiClient.GITHUB_URL))
+                .findFirst();
     }
 }
