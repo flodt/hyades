@@ -27,6 +27,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.kohsuke.github.GHFileNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,10 @@ public abstract class ApiClient {
     protected <T> T safeFetchValue(ApiClient.ThrowingAPICall<T> call, T defaultValue) {
         try {
             return call.call();
+        } catch (GHFileNotFoundException e) {
+            // this is an expected exception indicating that a file does not exist in the GitHub repo, and is used
+            //      while checking for README.md, etc. in GitHubApiClient
+            return defaultValue;
         } catch (IOException e) {
             logger.warn("I/O error during API call", e);
             return defaultValue;

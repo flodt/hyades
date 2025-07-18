@@ -20,6 +20,8 @@ package org.dependencytrack.repometaanalyzer.util;
 
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Date;
@@ -28,16 +30,21 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public final class GitHubUtil {
+    private static final Logger logger = LoggerFactory.getLogger(GitHubUtil.class);
+
     private GitHubUtil() {
     }
 
     public static GitHub connectToGitHub(String user, String password, String githubUrl) throws IOException {
         final GitHub github;
         if (isNotBlank(user) && isNotBlank(password)) {
+            logger.info("Connecting to GitHub with username and password");
             github = GitHub.connect(user, password);
         } else if (isBlank(user) && isNotBlank(password)) {
+            logger.info("Connecting to GitHub with OAuth");
             github = GitHub.connectUsingOAuth(githubUrl, password);
         } else {
+            logger.info("Connecting to GitHub without credentials");
             github = GitHub.connectAnonymously();
         }
         return github;

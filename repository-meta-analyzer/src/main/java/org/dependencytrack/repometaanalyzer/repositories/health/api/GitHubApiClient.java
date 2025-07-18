@@ -40,6 +40,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 @ApplicationScoped
 public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
@@ -51,8 +53,11 @@ public class GitHubApiClient extends ApiClient {
 
     public boolean connect(Repository credentials) {
         try {
+            // decrypt only if we even have a password, the decryption method does not handle empty strings
             String user = credentials.getUsername();
-            String password = secretDecryptor.decryptAsString(credentials.getPassword());
+            String password = credentials.getPassword();
+            if (isNotBlank(password)) password = secretDecryptor.decryptAsString(password);
+
             this.gitHub = GitHubUtil.connectToGitHub(user, password, GITHUB_URL);
             return true;
         } catch (IOException e) {
