@@ -46,6 +46,9 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
 
+    private static final int CONTRIBUTOR_STATS_RETRY_COUNT = 3;
+    private static final int CONTRIBUTOR_STATS_WAIT_TIME_MILLIS = 20_000;
+
     @Inject
     SecretDecryptor secretDecryptor;
 
@@ -150,12 +153,35 @@ public class GitHubApiClient extends ApiClient {
                             null)
             );
 
-            metaModel.setCommitFrequencyWeekly(safeFetchValue(() -> {
-                List<GHRepositoryStatistics.ContributorStats> stats = repository
-                        .getStatistics()
-                        .getContributorStats()
-                        .toList();
+            // fetch contributor stats, we'll need them for the remaining checks
+            List<GHRepositoryStatistics.ContributorStats> stats = safeFetchValue(() -> {
+                /*
+                    The waitTillReady parameter in getContributorStats() has no effect, as getContributorStatsImpl()
+                    always returns a non-null PagedIterable.
+                    see also: https://github.com/hub4j/github-api/issues/1540
+                    Therefore, the polling loop is never triggered, and the internal fetching of the next page done in
+                    PagedIterable.toList() then blows up because base.next() is null.
+                    We work around this by catching this NPE and trying again with the specified configuration.
+                 */
 
+                for (int i = 0; i < CONTRIBUTOR_STATS_RETRY_COUNT; i++) {
+                    try {
+                        return repository
+                                .getStatistics()
+                                .getContributorStats(true)
+                                .toList();
+                    } catch (NullPointerException e) {
+                        // the stats are not present yet, we try again
+                        Thread.sleep(CONTRIBUTOR_STATS_WAIT_TIME_MILLIS);
+                    }
+                }
+
+                throw new IOException(
+                        "Failed to retrieve contributor stats after " + CONTRIBUTOR_STATS_RETRY_COUNT + " retries"
+                );
+            }, List.of());
+
+            metaModel.setCommitFrequencyWeekly(safeFetchValue(() -> {
                 if (stats.isEmpty()) {
                     throw new IOException("No contributor stats found, can't compute weekly commit frequency");
                 }
@@ -178,11 +204,6 @@ public class GitHubApiClient extends ApiClient {
             }, null));
 
             metaModel.setBusFactor(safeFetchValue(() -> {
-                List<GHRepositoryStatistics.ContributorStats> stats = repository
-                        .getStatistics()
-                        .getContributorStats()
-                        .toList();
-
                 if (stats.isEmpty()) {
                     throw new IOException("No contributor stats found, can't compute bus factor");
                 }

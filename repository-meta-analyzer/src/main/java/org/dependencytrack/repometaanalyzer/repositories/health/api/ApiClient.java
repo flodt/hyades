@@ -87,6 +87,9 @@ public abstract class ApiClient {
         } catch (InterruptedException e) {
             logger.warn("API call was interrupted", e);
             return defaultValue;
+        } catch (RuntimeException e) {
+            logger.warn("Unexpected error during API call", e);
+            return defaultValue;
         }
     }
 
