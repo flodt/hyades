@@ -143,7 +143,7 @@ public class GitHubApiClientTest {
             when(blob2.getType()).thenReturn("blob");
             when(treeE.getType()).thenReturn("tree");
             GHTree ghTree = mock(GHTree.class);
-            when(repo.getTree("abc123")).thenReturn(ghTree);
+            when(repo.getTreeRecursive("abc123", 1)).thenReturn(ghTree);
             when(ghTree.getTree()).thenReturn(List.of(blob1, blob2, treeE));
 
             // archived
@@ -162,7 +162,7 @@ public class GitHubApiClientTest {
             when(cs3.getTotal()).thenReturn(7);
             PagedIterable<GHRepositoryStatistics.ContributorStats> statsPaged = mock(PagedIterable.class);
             when(statsPaged.toList()).thenReturn(List.of(cs1, cs2, cs3));
-            when(stats.getContributorStats()).thenReturn(statsPaged);
+            when(stats.getContributorStats(true)).thenReturn(statsPaged);
             when(repo.getStatistics()).thenReturn(stats);
 
             /*

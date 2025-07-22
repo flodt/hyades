@@ -19,6 +19,9 @@
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.persistence.repository.RepoEntityRepository;
@@ -42,19 +45,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 public class DepsDevGitHubHealthMetaAnalyzerTest {
-    @Mock
-    private RepoEntityRepository repoEntityRepository;
+    @InjectMock
+    RepoEntityRepository repoEntityRepository;
 
-    @Mock
-    private DepsDevApiClient depsDevApiClient;
+    @InjectMock
+    DepsDevApiClient depsDevApiClient;
 
-    @Mock
-    private GitHubApiClient gitHubApiClient;
+    @InjectMock
+    GitHubApiClient gitHubApiClient;
 
-    @InjectMocks
-    private DepsDevGitHubHealthMetaAnalyzer analyzer;
+    @Inject
+    DepsDevGitHubHealthMetaAnalyzer analyzer;
 
     private static final String GITHUB_URL = "https://github.com";
 
@@ -215,9 +218,9 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         ghConfig.setUrl(GITHUB_URL);
         when(repoEntityRepository.findEnabledRepositoriesByType(RepositoryType.GITHUB)).thenReturn(List.of(ghConfig));
 
-        when(depsDevApiClient.fetchLatestVersion("MAVEN", "commons-lang3")).thenReturn(Optional.of("3.12.0"));
-        when(depsDevApiClient.fetchDependents("MAVEN", "commons-lang3", "3.12.0")).thenReturn(Optional.of(8));
-        when(depsDevApiClient.fetchSourceRepoProjectKey("MAVEN", "commons-lang3", "3.12.0")).thenReturn(Optional.of("github.com/apache/commons-lang"));
+        when(depsDevApiClient.fetchLatestVersion("MAVEN", "org.apache.commons:commons-lang3")).thenReturn(Optional.of("3.12.0"));
+        when(depsDevApiClient.fetchDependents("MAVEN", "org.apache.commons:commons-lang3", "3.12.0")).thenReturn(Optional.of(8));
+        when(depsDevApiClient.fetchSourceRepoProjectKey("MAVEN", "org.apache.commons:commons-lang3", "3.12.0")).thenReturn(Optional.of("github.com/apache/commons-lang"));
         ComponentHealthMetaModel score = new ComponentHealthMetaModel(null);
         score.setScoreCardReferenceVersion("v3");
 

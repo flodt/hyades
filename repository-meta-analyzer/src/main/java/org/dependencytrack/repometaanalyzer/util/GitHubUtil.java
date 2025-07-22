@@ -38,13 +38,13 @@ public final class GitHubUtil {
     public static GitHub connectToGitHub(String user, String password, String githubUrl) throws IOException {
         final GitHub github;
         if (isNotBlank(user) && isNotBlank(password)) {
-            logger.info("Connecting to GitHub with username and password");
+            logger.debug("Connecting to GitHub with username and password");
             github = GitHub.connect(user, password);
         } else if (isBlank(user) && isNotBlank(password)) {
-            logger.info("Connecting to GitHub with OAuth");
+            logger.debug("Connecting to GitHub with OAuth");
             github = GitHub.connectUsingOAuth(githubUrl, password);
         } else {
-            logger.info("Connecting to GitHub without credentials");
+            logger.debug("Connecting to GitHub without credentials");
             github = GitHub.connectAnonymously();
         }
         return github;

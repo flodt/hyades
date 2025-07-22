@@ -66,7 +66,7 @@ public abstract class ApiClient {
             JsonNode root = mapper.readTree(response.getEntity().getContent());
             return parser.apply(root);
         } catch (RuntimeException e) {
-            this.logger.warn("Unexpected error during retrieval", e);
+            this.logger.warn("Unexpected error during retrieval of {}", url, e);
             return Optional.empty();
         } catch (IOException e) {
             this.logger.warn("I/O error during retrieval", e);
@@ -86,6 +86,8 @@ public abstract class ApiClient {
             return defaultValue;
         } catch (InterruptedException e) {
             logger.warn("API call was interrupted", e);
+            return defaultValue;
+        } catch (GitHubContributorStatsMissingException e) {
             return defaultValue;
         } catch (RuntimeException e) {
             logger.warn("Unexpected error during API call", e);

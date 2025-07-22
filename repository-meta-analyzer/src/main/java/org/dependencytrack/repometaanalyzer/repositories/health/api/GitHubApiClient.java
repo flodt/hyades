@@ -46,8 +46,8 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
 
-    private static final int CONTRIBUTOR_STATS_RETRY_COUNT = 3;
-    private static final int CONTRIBUTOR_STATS_WAIT_TIME_MILLIS = 20_000;
+    private static final int CONTRIBUTOR_STATS_RETRY_COUNT = 4;
+    private static final int CONTRIBUTOR_STATS_WAIT_TIME_MILLIS = 30_000;
 
     @Inject
     SecretDecryptor secretDecryptor;
@@ -61,7 +61,7 @@ public class GitHubApiClient extends ApiClient {
 
             // we need to be authenticated for our purposes
             if (isBlank(password)) {
-                logger.info("No credential found for GitHub, can not use authenticated API functions");
+                logger.warn("No credential found for GitHub, can not use authenticated API functions");
                 return false;
             }
 
@@ -176,14 +176,13 @@ public class GitHubApiClient extends ApiClient {
                     }
                 }
 
-                throw new IOException(
-                        "Failed to retrieve contributor stats after " + CONTRIBUTOR_STATS_RETRY_COUNT + " retries"
-                );
+                logger.warn("Failed to retrieve contributor stats after " + CONTRIBUTOR_STATS_RETRY_COUNT + " retries for {}", project);
+                throw new GitHubContributorStatsMissingException();
             }, List.of());
 
             metaModel.setCommitFrequencyWeekly(safeFetchValue(() -> {
                 if (stats.isEmpty()) {
-                    throw new IOException("No contributor stats found, can't compute weekly commit frequency");
+                    throw new GitHubContributorStatsMissingException("No contributor stats found, can't compute weekly commit frequency");
                 }
 
                 int totalCommits = stats
@@ -205,7 +204,7 @@ public class GitHubApiClient extends ApiClient {
 
             metaModel.setBusFactor(safeFetchValue(() -> {
                 if (stats.isEmpty()) {
-                    throw new IOException("No contributor stats found, can't compute bus factor");
+                    throw new GitHubContributorStatsMissingException("No contributor stats found, can't compute bus factor");
                 }
 
                 int totalCommits = stats.stream()

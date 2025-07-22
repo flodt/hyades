@@ -23,7 +23,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.dependencytrack.common.SecretDecryptor;
 import org.dependencytrack.persistence.model.Repository;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
-@Ignore
+@Disabled
 class GitHubApiClientExternalIntegrationTest {
     @Inject
     GitHubApiClient gitHubApiClient;
