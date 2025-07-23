@@ -68,6 +68,51 @@ message Component {
   optional string latest_version = 54;
 }
 
+message HealthMeta {
+  optional int32 stars = 1;
+  optional int32 forks = 2;
+  optional int32 contributors = 3;
+  optional float commitFrequencyWeekly = 4;
+  optional int32 openIssues = 5;
+  optional int32 openPRs = 6;
+  optional google.protobuf.Timestamp lastCommitDate = 7;
+  optional int32 busFactor = 8;
+  optional bool hasReadme = 9;
+  optional bool hasCodeOfConduct = 10;
+  optional bool hasSecurityPolicy = 11;
+  optional int32 dependents = 12;
+  optional int32 files = 13;
+  optional bool isRepoArchived = 14;
+  optional ScoreCardCheck scoreCardChecks = 15;
+  optional float scoreCardScore = 16;
+  optional string scoreCardReferenceVersion = 17;
+  optional google.protobuf.Timestamp scoreCardTimestamp = 18;
+  optional string purl = 19;
+  optional float avgIssueAgeDays = 20;
+}
+
+message ScoreCardCheck {
+  optional float packaging = 1;
+  optional float tokenPermissions = 2;
+  optional float codeReview = 3;
+  optional float pinnedDependencies = 4;
+  optional float binaryArtifacts = 5;
+  optional float dangerousWorkflow = 6;
+  optional float maintained = 7;
+  optional float ciiBestPractices = 8;
+  optional float securityPolicy = 9;
+  optional float fuzzing = 10;
+  optional float license = 11;
+  optional float signedReleases = 12;
+  optional float branchProtection = 13;
+  optional float sast = 14;
+  optional float vulnerabilities = 15;
+  optional float ciTests = 16;
+  optional float contributors = 17;
+  optional float dependencyUpdateTool = 18;
+  optional float webhooks = 19;
+}
+
 message License {
   string uuid = 1;
   string id = 2;
