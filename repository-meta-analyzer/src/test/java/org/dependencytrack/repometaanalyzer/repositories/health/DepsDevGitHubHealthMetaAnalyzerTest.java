@@ -30,10 +30,6 @@ import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiCl
 import org.dependencytrack.repometaanalyzer.repositories.health.api.GitHubApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
