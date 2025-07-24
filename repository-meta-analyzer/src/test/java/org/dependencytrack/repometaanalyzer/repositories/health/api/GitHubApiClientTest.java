@@ -239,7 +239,7 @@ public class GitHubApiClientTest {
             GHRepositoryStatistics stats = mock(GHRepositoryStatistics.class);
             PagedIterable<GHRepositoryStatistics.ContributorStats> emptyPaged = mock(PagedIterable.class);
             when(emptyPaged.toList()).thenReturn(Collections.emptyList());
-            when(stats.getContributorStats()).thenReturn(emptyPaged);
+            when(stats.getContributorStats(true)).thenReturn(emptyPaged);
             when(repo.getStatistics()).thenReturn(stats);
 
             Optional<ComponentHealthMetaModel> opt = client.fetchDataFromGitHub("github.com/x/y");
