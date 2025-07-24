@@ -53,6 +53,11 @@ public class DepsDevApiClient extends ApiClient {
     public Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
         String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name)
                 + "/versions/" + urlEncode(version);
+        // TODO: Write a better parser for extracting the actual source code repository from the API response
+        // The current solution only considers explicit "SOURCE_REPO" related projects - they are known good, tracked by
+        // deps.dev and definitely in the format that is needed to retrieve the Scorecard scores.
+        // They could also be read from the "links" section, as in some cases, the SOURCE_REPO is not present in
+        // related projects. Unfortunately, these "links" don't follow a uniform format.
         return requestParseJsonForResult(url, (root) -> {
             JsonNode relatedProjectsNode = root.get("relatedProjects");
             return StreamSupport
