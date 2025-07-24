@@ -47,7 +47,7 @@ public class GitHubApiClient extends ApiClient {
     public static final String GITHUB_URL = "https://github.com";
 
     private static final int CONTRIBUTOR_STATS_RETRY_COUNT = 4;
-    private static final int CONTRIBUTOR_STATS_WAIT_TIME_MILLIS = 30_000;
+    private static final int CONTRIBUTOR_STATS_WAIT_TIME_MILLIS = 45_000;
 
     @Inject
     SecretDecryptor secretDecryptor;
