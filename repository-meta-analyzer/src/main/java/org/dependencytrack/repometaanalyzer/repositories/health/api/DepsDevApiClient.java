@@ -72,6 +72,10 @@ public class DepsDevApiClient extends ApiClient {
             metaModel.setOpenIssues(root.path("openIssuesCount").asInt());
             metaModel.setStars(root.path("starsCount").asInt());
             metaModel.setForks(root.path("forksCount").asInt());
+
+            // If this project has no listed scorecard, we're done here
+            if (!root.has("scorecard")) return Optional.of(metaModel);
+
             metaModel.setScoreCardReferenceVersion(
                     root.path("scorecard").path("scorecard").path("version").asText()
             );
