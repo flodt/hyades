@@ -24,7 +24,6 @@ import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,18 +55,9 @@ public class DepsDevApiClient extends ApiClient {
                 + "/versions/" + urlEncode(version);
         return requestParseJsonForResult(url, (root) -> {
             JsonNode relatedProjectsNode = root.get("relatedProjects");
-
-            // Find SOURCE_REPOs primarily, and if we don't have any of them, try ISSUE_TRACKER - we'd get some issue
-            //      activity metadata from them.
             return StreamSupport
                     .stream(relatedProjectsNode.spliterator(), false)
-                    .filter(n -> {
-                        String relationType = n.path("relationType").asText();
-                        return "SOURCE_REPO".equals(relationType) || "ISSUE_TRACKER".equals(relationType);
-                    })
-                    .sorted(Comparator.comparingInt(n ->
-                            "SOURCE_REPO".equals(n.path("relationType").asText()) ? 0 : 1
-                    ))
+                    .filter(n -> "SOURCE_REPO".equals(n.path("relationType").asText()))
                     .map(n -> n.path("projectKey").path("id").asText())
                     .filter(Objects::nonNull)
                     .findFirst();
