@@ -90,6 +90,17 @@ public class GitHubApiClient extends ApiClient {
 
             metaModel.setContributors(safeFetchValue(() -> repository.listContributors().toList().size(), null));
             metaModel.setOpenPRs(safeFetchValue(() -> repository.getPullRequests(GHIssueState.OPEN).size(), null));
+
+            // As per docs: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#list-repository-issues
+            // "GitHub's REST API considers every pull request an issue, but not every issue is a pull request".
+            // So we are always double-counting the PRs when we get the "openIssuesCount" from deps.dev in
+            // DepsDevApiClient. Therefore, if we have that count, we subtract the PRs from it here.
+            Integer openIssues = metaModel.getOpenIssues();
+            Integer openPRs = metaModel.getOpenPRs();
+            if (openIssues != null && openPRs != null) {
+                metaModel.setOpenIssues(Math.max(0, openIssues - openPRs));
+            }
+
             metaModel.setLastCommitDate(safeFetchValue(() -> {
                 String head = repository.getBranch(repository.getDefaultBranch()).getSHA1();
                 return repository.getCommit(head).getCommitDate().toInstant();
