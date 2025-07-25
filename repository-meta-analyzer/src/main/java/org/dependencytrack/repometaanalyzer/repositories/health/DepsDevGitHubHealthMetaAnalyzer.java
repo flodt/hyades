@@ -89,7 +89,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         // collect latest version
         Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
         if (maybeVersion.isEmpty()) {
-            logger.warn("Could not determine latest version for {}", packageURL);
+            logger.warn("Could not determine latest version on deps.dev for {}", packageURL);
             return metaModel;
         }
         String version = maybeVersion.get();
@@ -97,7 +97,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         // Collect dependents count for this package version candidate
         Optional<Integer> maybeDependents = depsDevApiClient.fetchDependents(system, name, version);
         if (maybeDependents.isEmpty()) {
-            logger.warn("Could not determine dependents for {}", packageURL);
+            logger.warn("Could not determine dependents on deps.dev for {}", packageURL);
             // fallthrough
         }
         maybeDependents.ifPresent(metaModel::setDependents);
@@ -105,7 +105,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         // collect package information on this candidate version
         Optional<String> maybeProject = depsDevApiClient.fetchSourceRepoProjectKey(system, name, version);
         if (maybeProject.isEmpty()) {
-            logger.warn("Could not determine source code project for {}", packageURL);
+            logger.info("Could not determine source code project for {}", packageURL);
             return metaModel;
         }
         String project = maybeProject.get();
@@ -113,14 +113,14 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         // Collect OpenSSF Scorecard for this project
         Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = depsDevApiClient.fetchScorecardAndStarsForksForProject(project);
         if (maybeScorecardStarsForks.isEmpty()) {
-            logger.warn("Could not determine scorecard for {}", packageURL);
+            logger.info("Could not determine scorecard for {}", packageURL);
             // we can continue with the GitHub API even without the scorecard; fallthrough
         }
         maybeScorecardStarsForks.ifPresent(metaModel::mergeFrom);
 
         // The rest is dependent on the GitHub API
         if (!project.startsWith("github.com")) {
-            logger.warn("Source code project for {} is not on GitHub, can not fetch repository metadata.", packageURL);
+            logger.info("Source code project for {} is not on GitHub, can not fetch repository metadata.", packageURL);
             return metaModel;
         }
 
