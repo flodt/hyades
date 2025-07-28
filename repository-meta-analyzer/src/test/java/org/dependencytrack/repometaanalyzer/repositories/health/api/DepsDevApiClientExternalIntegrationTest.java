@@ -54,8 +54,8 @@ class DepsDevApiClientExternalIntegrationTest {
     }
 
     @Test
-    void fetchScorecardAndStarsForksForProject() {
-        Optional<ComponentHealthMetaModel> maybeMetaModel = this.depsDevApiClient.fetchScorecardAndStarsForksForProject("github.com/pandas-dev/pandas");
+    void fetchScorecardAndStarsForksIssuesForProject() {
+        Optional<ComponentHealthMetaModel> maybeMetaModel = this.depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("github.com/pandas-dev/pandas");
         assertThat(maybeMetaModel).isPresent();
 
         ComponentHealthMetaModel metaModel = maybeMetaModel.get();

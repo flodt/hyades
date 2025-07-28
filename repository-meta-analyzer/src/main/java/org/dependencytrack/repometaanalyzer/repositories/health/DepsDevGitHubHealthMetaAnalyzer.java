@@ -87,15 +87,17 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
                 + packageURL.getName();
 
         // collect latest version
-        Optional<String> maybeVersion = depsDevApiClient.fetchLatestVersion(system, name);
-        if (maybeVersion.isEmpty()) {
+        Optional<String> maybeLatestVersion = depsDevApiClient.fetchLatestVersion(system, name);
+        if (maybeLatestVersion.isEmpty()) {
             logger.warn("Could not determine latest version on deps.dev for {}", packageURL);
             return metaModel;
         }
-        String version = maybeVersion.get();
+        String latestVersion = maybeLatestVersion.get();
 
-        // Collect dependents count for this package version candidate
-        Optional<Integer> maybeDependents = depsDevApiClient.fetchDependents(system, name, version);
+        // Collect dependents count for the actual package version (if not possible then the latest version)
+        String actualVersion = packageURL.getVersion();
+        Optional<Integer> maybeDependents = depsDevApiClient.fetchDependents(system, name, actualVersion)
+                .or(() -> depsDevApiClient.fetchDependents(system, name, latestVersion));
         if (maybeDependents.isEmpty()) {
             logger.warn("Could not determine dependents on deps.dev for {}", packageURL);
             // fallthrough
@@ -103,7 +105,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         maybeDependents.ifPresent(metaModel::setDependents);
 
         // collect package information on this candidate version
-        Optional<String> maybeProject = depsDevApiClient.fetchSourceRepoProjectKey(system, name, version);
+        Optional<String> maybeProject = depsDevApiClient.fetchSourceRepoProjectKey(system, name, latestVersion);
         if (maybeProject.isEmpty()) {
             logger.info("Could not determine source code project for {}", packageURL);
             return metaModel;
@@ -111,7 +113,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         String project = maybeProject.get();
 
         // Collect OpenSSF Scorecard for this project
-        Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = depsDevApiClient.fetchScorecardAndStarsForksForProject(project);
+        Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject(project);
         if (maybeScorecardStarsForks.isEmpty()) {
             logger.info("Could not determine scorecard for {}", packageURL);
             // we can continue with the GitHub API even without the scorecard; fallthrough

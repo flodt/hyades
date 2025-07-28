@@ -69,7 +69,7 @@ public class DepsDevApiClient extends ApiClient {
         });
     }
 
-    public Optional<ComponentHealthMetaModel> fetchScorecardAndStarsForksForProject(String project) {
+    public Optional<ComponentHealthMetaModel> fetchScorecardAndStarsForksIssuesForProject(String project) {
         String url = "https://api.deps.dev/v3/projects/" + urlEncode(project);
         return requestParseJsonForResult(url, (root) -> {
             ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);

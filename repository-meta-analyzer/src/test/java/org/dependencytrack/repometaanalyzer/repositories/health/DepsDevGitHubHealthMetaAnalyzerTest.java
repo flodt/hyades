@@ -79,7 +79,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         score.setScoreCardReferenceVersion("v2");
         score.setScoreCardTimestamp(Instant.parse("2025-07-10T00:00:00Z"));
         score.setScoreCardScore(9.1f);
-        when(depsDevApiClient.fetchScorecardAndStarsForksForProject("github.com/foo/left-pad")).thenReturn(Optional.of(score));
+        when(depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("github.com/foo/left-pad")).thenReturn(Optional.of(score));
 
 
         // tell it the connection was OK
@@ -155,7 +155,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         score.setStars(8);
         score.setForks(4);
         score.setOpenIssues(2);
-        when(depsDevApiClient.fetchScorecardAndStarsForksForProject("github.com/foo/left-pad")).thenReturn(Optional.of(score));
+        when(depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("github.com/foo/left-pad")).thenReturn(Optional.of(score));
 
         when(gitHubApiClient.connect(ghConfig)).thenReturn(true);
         ComponentHealthMetaModel ghData = new ComponentHealthMetaModel(null);
@@ -196,7 +196,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         when(depsDevApiClient.fetchSourceRepoProjectKey("PYPI", "requests", "2.0.0")).thenReturn(Optional.of("gitlab.com/foo/requests"));
         ComponentHealthMetaModel score = new ComponentHealthMetaModel(null);
         score.setScoreCardScore(4.4f);
-        when(depsDevApiClient.fetchScorecardAndStarsForksForProject("gitlab.com/foo/requests")).thenReturn(Optional.of(score));
+        when(depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("gitlab.com/foo/requests")).thenReturn(Optional.of(score));
 
         PackageURL purl = new PackageURL("pypi", null, "requests", "2.0.0", null, null);
         ComponentHealthMetaModel result = analyzer.analyze(purl);
@@ -220,7 +220,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         ComponentHealthMetaModel score = new ComponentHealthMetaModel(null);
         score.setScoreCardReferenceVersion("v3");
 
-        when(depsDevApiClient.fetchScorecardAndStarsForksForProject("github.com/apache/commons-lang")).thenReturn(Optional.of(score));
+        when(depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("github.com/apache/commons-lang")).thenReturn(Optional.of(score));
 
         when(gitHubApiClient.connect(ghConfig)).thenReturn(false);  // connection fails
 
@@ -244,7 +244,7 @@ public class DepsDevGitHubHealthMetaAnalyzerTest {
         when(depsDevApiClient.fetchLatestVersion("GO", "gin")).thenReturn(Optional.of("v1.7.0"));
         when(depsDevApiClient.fetchDependents("GO", "gin", "v1.7.0")).thenReturn(Optional.of(15));
         when(depsDevApiClient.fetchSourceRepoProjectKey("GO", "gin", "v1.7.0")).thenReturn(Optional.of("github.com/gin-gonic/gin"));
-        when(depsDevApiClient.fetchScorecardAndStarsForksForProject("github.com/gin-gonic/gin")).thenReturn(Optional.empty());  // no scorecard
+        when(depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject("github.com/gin-gonic/gin")).thenReturn(Optional.empty());  // no scorecard
 
         when(gitHubApiClient.connect(ghConfig)).thenReturn(true);
         ComponentHealthMetaModel ghData = new ComponentHealthMetaModel(null);

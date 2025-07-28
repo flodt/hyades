@@ -130,7 +130,7 @@ public class DepsDevApiClientTest {
     }
 
     @Test
-    void fetchScorecardAndStarsForksForProject_parsesAllFields() throws Exception {
+    void fetchScorecardAndStarsForksIssuesForProject_parsesAllFields() throws Exception {
         String json = """
                 {
                   "openIssuesCount": 5,
@@ -158,7 +158,7 @@ public class DepsDevApiClientTest {
         CloseableHttpResponse fake = mockResponse(200, json);
         when(mockHttpClient.execute(any())).thenReturn(fake);
 
-        Optional<ComponentHealthMetaModel> opt = client.fetchScorecardAndStarsForksForProject("github.com/foo/bar");
+        Optional<ComponentHealthMetaModel> opt = client.fetchScorecardAndStarsForksIssuesForProject("github.com/foo/bar");
         assertThat(opt).isPresent();
         ComponentHealthMetaModel m = opt.get();
 
