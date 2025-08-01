@@ -22,8 +22,10 @@ import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
+import org.dependencytrack.repometaanalyzer.repositories.health.packageanalyzer.IHealthMetaPackageAnalyzer;
+import org.dependencytrack.repometaanalyzer.repositories.health.sourceanalyzer.IHealthMetaSourceCodeAnalyzer;
+import org.dependencytrack.repometaanalyzer.repositories.health.sourcemapper.IHealthMetaSourceCodeMapper;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,33 +33,33 @@ import java.util.Objects;
  * Factory for creating health metadata analyzers.
  */
 @ApplicationScoped
-public class HealthAnalyzerFactory {
+public final class HealthAnalyzerRegistry {
     private final Instance<IHealthMetaPackageAnalyzer> packageAnalyzers;
     private final Instance<IHealthMetaSourceCodeAnalyzer> sourceCodeAnalyzers;
     private final Instance<IHealthMetaSourceCodeMapper> sourceCodeMappers;
 
     @Inject
-    public HealthAnalyzerFactory(Instance<IHealthMetaPackageAnalyzer> packageAnalyzers, Instance<IHealthMetaSourceCodeAnalyzer> sourceCodeAnalyzers, Instance<IHealthMetaSourceCodeMapper> sourceCodeMappers) {
+    public HealthAnalyzerRegistry(Instance<IHealthMetaPackageAnalyzer> packageAnalyzers, Instance<IHealthMetaSourceCodeAnalyzer> sourceCodeAnalyzers, Instance<IHealthMetaSourceCodeMapper> sourceCodeMappers) {
         this.packageAnalyzers = packageAnalyzers;
         this.sourceCodeAnalyzers = sourceCodeAnalyzers;
         this.sourceCodeMappers = sourceCodeMappers;
     }
 
-    public List<IHealthMetaPackageAnalyzer> createPackageAnalyzers(PackageURL purl) {
+    public List<IHealthMetaPackageAnalyzer> getPackageAnalyzers(PackageURL purl) {
         return packageAnalyzers.stream()
                 .filter(Objects::nonNull)
                 .filter(pa -> pa.isApplicable(purl))
                 .toList();
     }
 
-    public List<IHealthMetaSourceCodeAnalyzer> createSourceCodeAnalyzers(String projectKey) {
+    public List<IHealthMetaSourceCodeAnalyzer> getSourceCodeAnalyzers(String projectKey) {
         return sourceCodeAnalyzers.stream()
                 .filter(Objects::nonNull)
                 .filter(sca -> sca.isApplicable(projectKey))
                 .toList();
     }
 
-    public List<IHealthMetaSourceCodeMapper> createSourceCodeMappers(PackageURL purl) {
+    public List<IHealthMetaSourceCodeMapper> getSourceCodeMappers(PackageURL purl) {
         return sourceCodeMappers.stream()
                 .filter(Objects::nonNull)
                 .filter(sca -> sca.isApplicable(purl))

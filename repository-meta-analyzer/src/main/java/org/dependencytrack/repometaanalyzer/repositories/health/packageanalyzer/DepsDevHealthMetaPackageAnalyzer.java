@@ -16,33 +16,24 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories.health;
+package org.dependencytrack.repometaanalyzer.repositories.health.packageanalyzer;
 
 import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthMetaModelFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.Optional;
+
+import static org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient.SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM;
 
 @ApplicationScoped
 public class DepsDevHealthMetaPackageAnalyzer implements IHealthMetaPackageAnalyzer {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
-    private static final Map<String, String> SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM = Map.ofEntries(
-            Map.entry(PackageURL.StandardTypes.NPM, "NPM"),
-            Map.entry(PackageURL.StandardTypes.GOLANG, "GO"),
-            Map.entry(PackageURL.StandardTypes.MAVEN, "MAVEN"),
-            Map.entry(PackageURL.StandardTypes.PYPI, "PYPI"),
-            Map.entry(PackageURL.StandardTypes.NUGET, "NUGET"),
-            Map.entry(PackageURL.StandardTypes.CARGO, "CARGO"),
-            Map.entry(PackageURL.StandardTypes.GEM, "RUBYGEMS")
-    );
 
     @Inject
     DepsDevApiClient depsDevApiClient;
@@ -54,18 +45,10 @@ public class DepsDevHealthMetaPackageAnalyzer implements IHealthMetaPackageAnaly
 
     @Override
     public ComponentHealthMetaModel analyze(PackageURL packageURL) {
-        Component component = new Component();
-        component.setPurl(packageURL);
-        ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(component);
+        ComponentHealthMetaModel metaModel = HealthMetaModelFactory.create(packageURL);
 
-        String system = Optional
-                .ofNullable(SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(packageURL.getType()))
-                .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
-        String name = Optional.ofNullable(packageURL.getNamespace())
-                .filter(ns -> !ns.isEmpty())
-                .map(ns -> ns + ":")
-                .orElse("")
-                + packageURL.getName();
+        String system = DepsDevApiClient.getSystemForPurl(packageURL);
+        String name = DepsDevApiClient.getNamespacedNameForPurl(packageURL);
 
         // collect latest version
         Optional<String> maybeLatestVersion = depsDevApiClient.fetchLatestVersion(system, name);

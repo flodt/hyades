@@ -56,7 +56,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.HealthMeta;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 import org.dependencytrack.repometaanalyzer.repositories.general.RepositoryAnalyzerFactory;
-import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerRegistry;
 import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.serde.KafkaPurlSerde;
 import org.junit.jupiter.api.AfterEach;
@@ -107,7 +107,7 @@ class MetaAnalyzerProcessorTest {
     RepositoryAnalyzerFactory analyzerFactory;
 
     @InjectMock
-    HealthAnalyzerFactory healthAnalyzerFactory;
+    HealthAnalyzerRegistry healthAnalyzerRegistry;
 
     @Inject
     EntityManager entityManager;
@@ -122,7 +122,7 @@ class MetaAnalyzerProcessorTest {
     @BeforeEach
     void beforeEach() {
         final var processorSupplier = new MetaAnalyzerProcessorSupplier(
-                repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthAnalyzerFactory
+                repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthAnalyzerRegistry
         );
 
         final var valueSerde = new KafkaProtobufSerde<>(AnalysisCommand.parser());
@@ -403,7 +403,7 @@ class MetaAnalyzerProcessorTest {
     @Test
     void testHealthFetchMetaNoAnalyzer() throws Exception {
         // Return two fake analyzers from HealthAnalyzerFactory whose results should be merged
-        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+        when(healthAnalyzerRegistry.createApplicableAnalyzers(any(PackageURL.class)))
                 .thenReturn(Collections.emptyList());
 
         // Build AnalysisCommand
@@ -464,7 +464,7 @@ class MetaAnalyzerProcessorTest {
 
         // Mock our factory with a single analyzer that returns all of the above
         IHealthMetaAnalyzer fakeAnalyzer = mock(IHealthMetaAnalyzer.class);
-        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+        when(healthAnalyzerRegistry.createApplicableAnalyzers(any(PackageURL.class)))
                 .thenReturn(Collections.singletonList(fakeAnalyzer));
 
         // Component setup
@@ -560,7 +560,7 @@ class MetaAnalyzerProcessorTest {
         // Return two fake analyzers from HealthAnalyzerFactory whose results should be merged
         IHealthMetaAnalyzer fakeAnalyzer1 = mock(IHealthMetaAnalyzer.class);
         IHealthMetaAnalyzer fakeAnalyzer2 = mock(IHealthMetaAnalyzer.class);
-        when(healthAnalyzerFactory.createApplicableAnalyzers(any(PackageURL.class)))
+        when(healthAnalyzerRegistry.createApplicableAnalyzers(any(PackageURL.class)))
                 .thenReturn(List.of(fakeAnalyzer1, fakeAnalyzer2));
 
         // Setup dummy values

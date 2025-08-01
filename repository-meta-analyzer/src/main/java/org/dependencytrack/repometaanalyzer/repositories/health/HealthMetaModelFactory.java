@@ -19,26 +19,17 @@
 package org.dependencytrack.repometaanalyzer.repositories.health;
 
 import com.github.packageurl.PackageURL;
+import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 
-public interface IHealthMetaAnalyzer {
-    /**
-     * Returns if the analyzer is applicable for the component
-     * @param packageURL the package URL
-     * @return true if applicable, else false
-     */
-    boolean isApplicable(PackageURL packageURL);
+public final class HealthMetaModelFactory {
+    private HealthMetaModelFactory() {
 
-    /**
-     * Returns the name of the analyzer
-     * @return the analyzer name
-     */
-    String getName();
+    }
 
-    /**
-     * Analyzes the component and returns the health metadata
-     * @param packageURL the PURL of the component to analyze
-     * @return the health metadata retrieved for the component
-     */
-    ComponentHealthMetaModel analyze(PackageURL packageURL);
+    public static ComponentHealthMetaModel create(PackageURL packageURL) {
+        Component component = new Component();
+        component.setPurl(packageURL);
+        return new ComponentHealthMetaModel(component);
+    }
 }

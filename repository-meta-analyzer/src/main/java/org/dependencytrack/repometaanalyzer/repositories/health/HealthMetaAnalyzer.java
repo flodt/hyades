@@ -31,16 +31,16 @@ import java.util.Optional;
 @ApplicationScoped
 public final class HealthMetaAnalyzer {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final HealthAnalyzerFactory healthAnalyzerFactory;
+    private final HealthAnalyzerRegistry healthAnalyzerRegistry;
 
     @Inject
-    public HealthMetaAnalyzer(HealthAnalyzerFactory healthAnalyzerFactory) {
-        this.healthAnalyzerFactory = healthAnalyzerFactory;
+    public HealthMetaAnalyzer(HealthAnalyzerRegistry healthAnalyzerRegistry) {
+        this.healthAnalyzerRegistry = healthAnalyzerRegistry;
     }
 
     public boolean isApplicable(PackageURL packageURL) {
-        return !healthAnalyzerFactory.createPackageAnalyzers(packageURL).isEmpty()
-                || !healthAnalyzerFactory.createSourceCodeMappers(packageURL).isEmpty();
+        return !healthAnalyzerRegistry.getPackageAnalyzers(packageURL).isEmpty()
+                || !healthAnalyzerRegistry.getSourceCodeMappers(packageURL).isEmpty();
     }
 
     public ComponentHealthMetaModel analyze(PackageURL packageURL) {
@@ -62,13 +62,13 @@ public final class HealthMetaAnalyzer {
         ComponentHealthMetaModel mergedResults = new ComponentHealthMetaModel(component);
 
         // (1) run applicable package analyzers
-        healthAnalyzerFactory.createPackageAnalyzers(packageURL)
+        healthAnalyzerRegistry.getPackageAnalyzers(packageURL)
                 .stream()
                 .map(pa -> pa.analyze(packageURL))
                 .forEach(mergedResults::mergeFrom);
 
         // (2) try to map to VCS
-        Optional<String> maybeProjectKey = healthAnalyzerFactory.createSourceCodeMappers(packageURL)
+        Optional<String> maybeProjectKey = healthAnalyzerRegistry.getSourceCodeMappers(packageURL)
                 .stream()
                 .map(scm -> scm.findSourceCodeFor(packageURL))
                 .filter(Optional::isPresent)
@@ -81,7 +81,7 @@ public final class HealthMetaAnalyzer {
 
         // (3) then analyze the source code project
         String projectKey = maybeProjectKey.get();
-        healthAnalyzerFactory.createSourceCodeAnalyzers(projectKey)
+        healthAnalyzerRegistry.getSourceCodeAnalyzers(projectKey)
                 .stream()
                 .map(sca -> sca.analyze(packageURL, projectKey))
                 .forEach(mergedResults::mergeFrom);

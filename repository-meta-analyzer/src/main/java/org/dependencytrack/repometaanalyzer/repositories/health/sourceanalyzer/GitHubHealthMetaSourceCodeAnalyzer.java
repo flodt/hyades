@@ -16,17 +16,17 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories.health;
+package org.dependencytrack.repometaanalyzer.repositories.health.sourceanalyzer;
 
 import com.github.packageurl.PackageURL;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.persistence.model.Repository;
 import org.dependencytrack.persistence.model.RepositoryType;
 import org.dependencytrack.persistence.repository.RepoEntityRepository;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthMetaModelFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.api.GitHubApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,9 +52,7 @@ public class GitHubHealthMetaSourceCodeAnalyzer implements IHealthMetaSourceCode
 
     @Override
     public ComponentHealthMetaModel analyze(PackageURL packageURL, String projectKey) {
-        Component component = new Component();
-        component.setPurl(packageURL);
-        ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(component);
+        ComponentHealthMetaModel metaModel = HealthMetaModelFactory.create(packageURL);
 
         // Connect to GitHub
         Optional<Repository> maybeRepository = QuarkusTransaction

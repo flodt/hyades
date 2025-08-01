@@ -19,18 +19,44 @@
 package org.dependencytrack.repometaanalyzer.repositories.health.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 import org.dependencytrack.repometaanalyzer.model.ScoreCardCheck;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @ApplicationScoped
 public class DepsDevApiClient extends ApiClient {
+    public static final Map<String, String> SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM = Map.ofEntries(
+            Map.entry(PackageURL.StandardTypes.NPM, "NPM"),
+            Map.entry(PackageURL.StandardTypes.GOLANG, "GO"),
+            Map.entry(PackageURL.StandardTypes.MAVEN, "MAVEN"),
+            Map.entry(PackageURL.StandardTypes.PYPI, "PYPI"),
+            Map.entry(PackageURL.StandardTypes.NUGET, "NUGET"),
+            Map.entry(PackageURL.StandardTypes.CARGO, "CARGO"),
+            Map.entry(PackageURL.StandardTypes.GEM, "RUBYGEMS")
+    );
+
+    public static String getSystemForPurl(PackageURL packageURL) {
+        return Optional
+                .ofNullable(SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(packageURL.getType()))
+                .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
+    }
+
+    public static String getNamespacedNameForPurl(PackageURL packageURL) {
+        return Optional.ofNullable(packageURL.getNamespace())
+                .filter(ns -> !ns.isEmpty())
+                .map(ns -> ns + ":")
+                .orElse("")
+                + packageURL.getName();
+    }
+
     public Optional<String> fetchLatestVersion(String system, String name) {
         String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name);
         return requestParseJsonForResult(url, (root) -> {

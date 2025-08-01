@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories.health;
+package org.dependencytrack.repometaanalyzer.repositories.health.sourcemapper;
 
 import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,8 +25,9 @@ import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiCl
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.Optional;
+
+import static org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient.SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM;
 
 @ApplicationScoped
 public class DepsDevHealthMetaSourceCodeMapper implements IHealthMetaSourceCodeMapper {
@@ -35,16 +36,6 @@ public class DepsDevHealthMetaSourceCodeMapper implements IHealthMetaSourceCodeM
     @Inject
     DepsDevApiClient depsDevApiClient;
 
-    private static final Map<String, String> SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM = Map.ofEntries(
-            Map.entry(PackageURL.StandardTypes.NPM, "NPM"),
-            Map.entry(PackageURL.StandardTypes.GOLANG, "GO"),
-            Map.entry(PackageURL.StandardTypes.MAVEN, "MAVEN"),
-            Map.entry(PackageURL.StandardTypes.PYPI, "PYPI"),
-            Map.entry(PackageURL.StandardTypes.NUGET, "NUGET"),
-            Map.entry(PackageURL.StandardTypes.CARGO, "CARGO"),
-            Map.entry(PackageURL.StandardTypes.GEM, "RUBYGEMS")
-    );
-
     @Override
     public boolean isApplicable(PackageURL packageURL) {
         return SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.containsKey(packageURL.getType());
@@ -52,14 +43,8 @@ public class DepsDevHealthMetaSourceCodeMapper implements IHealthMetaSourceCodeM
 
     @Override
     public Optional<String> findSourceCodeFor(PackageURL packageURL) {
-        String system = Optional
-                .ofNullable(SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(packageURL.getType()))
-                .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
-        String name = Optional.ofNullable(packageURL.getNamespace())
-                .filter(ns -> !ns.isEmpty())
-                .map(ns -> ns + ":")
-                .orElse("")
-                + packageURL.getName();
+        String system = DepsDevApiClient.getSystemForPurl(packageURL);
+        String name = DepsDevApiClient.getNamespacedNameForPurl(packageURL);
 
         // collect latest version
         Optional<String> maybeLatestVersion = depsDevApiClient.fetchLatestVersion(system, name);

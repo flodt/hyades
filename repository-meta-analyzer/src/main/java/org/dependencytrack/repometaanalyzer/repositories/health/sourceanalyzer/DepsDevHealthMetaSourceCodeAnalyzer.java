@@ -16,13 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories.health;
+package org.dependencytrack.repometaanalyzer.repositories.health.sourceanalyzer;
 
 import com.github.packageurl.PackageURL;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.dependencytrack.persistence.model.Component;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthMetaModelFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.api.DepsDevApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +45,7 @@ public class DepsDevHealthMetaSourceCodeAnalyzer implements IHealthMetaSourceCod
 
     @Override
     public ComponentHealthMetaModel analyze(PackageURL packageURL, String projectKey) {
-        Component component = new Component();
-        component.setPurl(packageURL);
-        ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(component);
+        ComponentHealthMetaModel metaModel = HealthMetaModelFactory.create(packageURL);
 
         // Collect OpenSSF Scorecard for this project
         Optional<ComponentHealthMetaModel> maybeScorecardStarsForks = depsDevApiClient.fetchScorecardAndStarsForksIssuesForProject(projectKey);

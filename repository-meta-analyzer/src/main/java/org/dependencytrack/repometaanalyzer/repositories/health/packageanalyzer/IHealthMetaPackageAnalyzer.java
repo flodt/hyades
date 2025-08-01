@@ -16,14 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) OWASP Foundation. All Rights Reserved.
  */
-package org.dependencytrack.repometaanalyzer.repositories.health;
+package org.dependencytrack.repometaanalyzer.repositories.health.packageanalyzer;
 
 import com.github.packageurl.PackageURL;
 import org.dependencytrack.repometaanalyzer.model.ComponentHealthMetaModel;
 
-import java.util.Optional;
-
-public interface IHealthMetaSourceCodeMapper {
+public interface IHealthMetaPackageAnalyzer {
     /**
      * Returns if the analyzer is applicable for the component
      * @param packageURL the package URL
@@ -32,10 +30,10 @@ public interface IHealthMetaSourceCodeMapper {
     boolean isApplicable(PackageURL packageURL);
 
     /**
-     * Analyzes the component and returns the source code project key identifying the VCS where this component's
-     * source code is located.
-     * @param packageURL the PURL of the component to analyze
-     * @return Optional containing the project key of the source code, e.g. github.com/owner/repo
+     * Analyzes the component and returns the partial health metadata
+     *
+     * @param packageURL    the PURL of the component to analyze
+     * @return the health metadata retrieved for the component
      */
-    Optional<String> findSourceCodeFor(PackageURL packageURL);
+    ComponentHealthMetaModel analyze(PackageURL packageURL);
 }
