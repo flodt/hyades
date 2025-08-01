@@ -25,34 +25,42 @@ import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Factory for creating health metadata analyzers.
  */
 @ApplicationScoped
 public class HealthAnalyzerFactory {
-    private final Instance<IHealthMetaAnalyzer> healthAnalyzers;
+    private final Instance<IHealthMetaPackageAnalyzer> packageAnalyzers;
+    private final Instance<IHealthMetaSourceCodeAnalyzer> sourceCodeAnalyzers;
+    private final Instance<IHealthMetaSourceCodeMapper> sourceCodeMappers;
 
     @Inject
-    public HealthAnalyzerFactory(Instance<IHealthMetaAnalyzer> healthAnalyzers) {
-        this.healthAnalyzers = healthAnalyzers;
+    public HealthAnalyzerFactory(Instance<IHealthMetaPackageAnalyzer> packageAnalyzers, Instance<IHealthMetaSourceCodeAnalyzer> sourceCodeAnalyzers, Instance<IHealthMetaSourceCodeMapper> sourceCodeMappers) {
+        this.packageAnalyzers = packageAnalyzers;
+        this.sourceCodeAnalyzers = sourceCodeAnalyzers;
+        this.sourceCodeMappers = sourceCodeMappers;
     }
 
-    /**
-     * Return all applicable health analyzers for the given package URL
-     * @param purl the package URL
-     * @return list of all applicable analyzers
-     */
-    public List<IHealthMetaAnalyzer> createApplicableAnalyzers(PackageURL purl) {
-        List<IHealthMetaAnalyzer> analyzers = new ArrayList<>();
+    public List<IHealthMetaPackageAnalyzer> createPackageAnalyzers(PackageURL purl) {
+        return packageAnalyzers.stream()
+                .filter(Objects::nonNull)
+                .filter(pa -> pa.isApplicable(purl))
+                .toList();
+    }
 
-        // initialize and check analyzers
-        for (IHealthMetaAnalyzer analyzer : healthAnalyzers) {
-            if (analyzer != null && analyzer.isApplicable(purl)) {
-                analyzers.add(analyzer);
-            }
-        }
+    public List<IHealthMetaSourceCodeAnalyzer> createSourceCodeAnalyzers(String projectKey) {
+        return sourceCodeAnalyzers.stream()
+                .filter(Objects::nonNull)
+                .filter(sca -> sca.isApplicable(projectKey))
+                .toList();
+    }
 
-        return analyzers;
+    public List<IHealthMetaSourceCodeMapper> createSourceCodeMappers(PackageURL purl) {
+        return sourceCodeMappers.stream()
+                .filter(Objects::nonNull)
+                .filter(sca -> sca.isApplicable(purl))
+                .toList();
     }
 }

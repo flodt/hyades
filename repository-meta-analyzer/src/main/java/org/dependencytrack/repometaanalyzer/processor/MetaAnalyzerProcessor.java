@@ -41,6 +41,7 @@ import org.dependencytrack.repometaanalyzer.model.MetaModel;
 import org.dependencytrack.repometaanalyzer.repositories.general.IMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.repositories.general.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.repositories.health.IHealthMetaAnalyzer;
 import org.dependencytrack.repometaanalyzer.util.ProtoUtil;
 import org.slf4j.Logger;
@@ -62,18 +63,18 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
     private final RepositoryAnalyzerFactory analyzerFactory;
     private final SecretDecryptor secretDecryptor;
     private final Cache cache;
-    private final HealthAnalyzerFactory healthAnalyzerFactory;
+    private final HealthMetaAnalyzer healthMetaAnalyzer;
 
     MetaAnalyzerProcessor(final RepoEntityRepository repoEntityRepository,
                           final RepositoryAnalyzerFactory analyzerFactory,
                           final SecretDecryptor secretDecryptor,
                           final Cache cache,
-                          final HealthAnalyzerFactory healthAnalyzerFactory) {
+                          final HealthMetaAnalyzer healthMetaAnalyzer) {
         this.repoEntityRepository = repoEntityRepository;
         this.analyzerFactory = analyzerFactory;
         this.secretDecryptor = secretDecryptor;
         this.cache = cache;
-        this.healthAnalyzerFactory = healthAnalyzerFactory;
+        this.healthMetaAnalyzer = healthMetaAnalyzer;
     }
 
     @Override
@@ -147,10 +148,8 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
             return resultBuilder;
         }
 
-        List<IHealthMetaAnalyzer> analyzers = healthAnalyzerFactory.createApplicableAnalyzers(purl);
-
         // don't have a fitting analyzer for this package
-        if (analyzers.isEmpty()) {
+        if (!healthMetaAnalyzer.isApplicable(purl)) {
             LOGGER.debug("No health analyzer is capable of analyzing {}", purl);
             return resultBuilder;
         }
@@ -167,23 +166,11 @@ class MetaAnalyzerProcessor extends ContextualFixedKeyProcessor<PackageURL, Anal
 
         LOGGER.debug("Cache miss for health metadata (purl: {})", purl.canonicalize());
 
-        // Try each analyzer in turn and merge the results
-        HealthMeta.Builder healthMetaBuilder = HealthMeta.newBuilder();
-
-        // We also use the legacy data models here for consistency with the other analyzers.
-        // This should also make it easier to swap out the communication infrastructure later on.
-        Component component = new Component();
-        component.setPurl(analysisCommand.getComponent().getPurl());
-
-        ComponentHealthMetaModel mergedResults = new ComponentHealthMetaModel(component);
-        analyzers
-                .stream()
-                .map(analyzer -> analyzer.analyze(purl))
-                .forEach(mergedResults::mergeFrom);
-
-        LOGGER.debug("Ran {} analyzers on purl {}", analyzers.size(), purl.canonicalize());
+        // Run analysis
+        ComponentHealthMetaModel mergedResults = healthMetaAnalyzer.analyze(purl);
 
         // Build the proto result based on all attributes of ComponentHealthMetaModel
+        HealthMeta.Builder healthMetaBuilder = HealthMeta.newBuilder();
         Optional.ofNullable(mergedResults.getStars()).ifPresent(healthMetaBuilder::setStars);
         Optional.ofNullable(mergedResults.getForks()).ifPresent(healthMetaBuilder::setForks);
         Optional.ofNullable(mergedResults.getContributors()).ifPresent(healthMetaBuilder::setContributors);

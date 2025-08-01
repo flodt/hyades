@@ -30,6 +30,7 @@ import org.dependencytrack.proto.repometaanalysis.v1.AnalysisCommand;
 import org.dependencytrack.proto.repometaanalysis.v1.AnalysisResult;
 import org.dependencytrack.repometaanalyzer.repositories.general.RepositoryAnalyzerFactory;
 import org.dependencytrack.repometaanalyzer.repositories.health.HealthAnalyzerFactory;
+import org.dependencytrack.repometaanalyzer.repositories.health.HealthMetaAnalyzer;
 
 @ApplicationScoped
 public class MetaAnalyzerProcessorSupplier implements FixedKeyProcessorSupplier<PackageURL, AnalysisCommand, AnalysisResult> {
@@ -38,23 +39,23 @@ public class MetaAnalyzerProcessorSupplier implements FixedKeyProcessorSupplier<
     private final RepositoryAnalyzerFactory analyzerFactory;
     private final SecretDecryptor secretDecryptor;
     private final Cache cache;
-    private final HealthAnalyzerFactory healthAnalyzerFactory;
+    private final HealthMetaAnalyzer healthMetaAnalyzer;
 
     public MetaAnalyzerProcessorSupplier(final RepoEntityRepository repoEntityRepository,
                                          final RepositoryAnalyzerFactory analyzerFactory,
                                          final SecretDecryptor secretDecryptor,
                                          @CacheName("metaAnalyzer") final Cache cache,
-                                         final HealthAnalyzerFactory healthAnalyzerFactory) {
+                                         final HealthMetaAnalyzer healthMetaAnalyzer) {
         this.repoEntityRepository = repoEntityRepository;
         this.analyzerFactory = analyzerFactory;
         this.secretDecryptor = secretDecryptor;
         this.cache = cache;
-        this.healthAnalyzerFactory = healthAnalyzerFactory;
+        this.healthMetaAnalyzer = healthMetaAnalyzer;
     }
 
     @Override
     public FixedKeyProcessor<PackageURL, AnalysisCommand, AnalysisResult> get() {
-        return new MetaAnalyzerProcessor(repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthAnalyzerFactory);
+        return new MetaAnalyzerProcessor(repoEntityRepository, analyzerFactory, secretDecryptor, cache, healthMetaAnalyzer);
     }
 
 }
