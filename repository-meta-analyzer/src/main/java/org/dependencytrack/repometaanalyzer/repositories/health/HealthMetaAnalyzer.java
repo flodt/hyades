@@ -61,13 +61,13 @@ public final class HealthMetaAnalyzer {
         component.setPurl(packageURL);
         ComponentHealthMetaModel mergedResults = new ComponentHealthMetaModel(component);
 
-        // run applicable package analyzers
+        // (1) run applicable package analyzers
         healthAnalyzerFactory.createPackageAnalyzers(packageURL)
                 .stream()
                 .map(pa -> pa.analyze(packageURL))
                 .forEach(mergedResults::mergeFrom);
 
-        // then try to map to VCS
+        // (2) try to map to VCS
         Optional<String> maybeProjectKey = healthAnalyzerFactory.createSourceCodeMappers(packageURL)
                 .stream()
                 .map(scm -> scm.findSourceCodeFor(packageURL))
@@ -79,11 +79,11 @@ public final class HealthMetaAnalyzer {
             return mergedResults;
         }
 
-        // then analyze the source code project
+        // (3) then analyze the source code project
         String projectKey = maybeProjectKey.get();
         healthAnalyzerFactory.createSourceCodeAnalyzers(projectKey)
                 .stream()
-                .map(sca -> sca.analyze(projectKey))
+                .map(sca -> sca.analyze(packageURL, projectKey))
                 .forEach(mergedResults::mergeFrom);
 
         return mergedResults;

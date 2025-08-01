@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Optional;
 
 @ApplicationScoped
 public class DepsDevHealthMetaPackageAnalyzer implements IHealthMetaPackageAnalyzer {
@@ -56,6 +57,33 @@ public class DepsDevHealthMetaPackageAnalyzer implements IHealthMetaPackageAnaly
         Component component = new Component();
         component.setPurl(packageURL);
         ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(component);
+
+        String system = Optional
+                .ofNullable(SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(packageURL.getType()))
+                .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
+        String name = Optional.ofNullable(packageURL.getNamespace())
+                .filter(ns -> !ns.isEmpty())
+                .map(ns -> ns + ":")
+                .orElse("")
+                + packageURL.getName();
+
+        // collect latest version
+        Optional<String> maybeLatestVersion = depsDevApiClient.fetchLatestVersion(system, name);
+        if (maybeLatestVersion.isEmpty()) {
+            logger.warn("Could not determine latest version on deps.dev for {}", packageURL);
+            return metaModel;
+        }
+        String latestVersion = maybeLatestVersion.get();
+
+        // Collect dependents count for the actual package version (if not possible then the latest version)
+        String actualVersion = packageURL.getVersion();
+        Optional<Integer> maybeDependents = depsDevApiClient.fetchDependents(system, name, actualVersion)
+                .or(() -> depsDevApiClient.fetchDependents(system, name, latestVersion));
+        if (maybeDependents.isEmpty()) {
+            logger.warn("Could not determine dependents on deps.dev for {}", packageURL);
+            // fallthrough
+        }
+        maybeDependents.ifPresent(metaModel::setDependents);
 
         return metaModel;
     }

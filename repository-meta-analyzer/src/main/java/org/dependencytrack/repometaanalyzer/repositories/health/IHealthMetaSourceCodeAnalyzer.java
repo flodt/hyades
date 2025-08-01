@@ -31,8 +31,10 @@ public interface IHealthMetaSourceCodeAnalyzer {
 
     /**
      * Analyzes the component and returns the partial health metadata
+     *
+     * @param packageURL the PURL for the project to analyze
      * @param projectKey the project key identifying the source code repository (e.g., github.com/owner/repo)
      * @return the health metadata retrieved for the component
      */
-    ComponentHealthMetaModel analyze(String projectKey);
+    ComponentHealthMetaModel analyze(PackageURL packageURL, String projectKey);
 }

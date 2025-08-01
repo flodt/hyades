@@ -31,7 +31,8 @@ public interface IHealthMetaPackageAnalyzer {
 
     /**
      * Analyzes the component and returns the partial health metadata
-     * @param packageURL the PURL of the component to analyze
+     *
+     * @param packageURL    the PURL of the component to analyze
      * @return the health metadata retrieved for the component
      */
     ComponentHealthMetaModel analyze(PackageURL packageURL);

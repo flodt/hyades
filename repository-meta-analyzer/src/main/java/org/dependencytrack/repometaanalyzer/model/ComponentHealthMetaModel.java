@@ -51,6 +51,8 @@ public class ComponentHealthMetaModel implements Serializable {
 
     private Instant scoreCardTimestamp;
 
+    private String projectKey;
+
     public ComponentHealthMetaModel(Component component) {
         this.component = component;
     }
@@ -211,6 +213,14 @@ public class ComponentHealthMetaModel implements Serializable {
         this.avgIssueAgeDays = avgIssueAgeDays;
     }
 
+    public String getProjectKey() {
+        return projectKey;
+    }
+
+    public void setProjectKey(String projectKey) {
+        this.projectKey = projectKey;
+    }
+
     @Override
     public String toString() {
         return "ComponentHealthMetaModel{" +
@@ -234,6 +244,7 @@ public class ComponentHealthMetaModel implements Serializable {
                 ", scoreCardScore=" + scoreCardScore +
                 ", scoreCardReferenceVersion='" + scoreCardReferenceVersion + '\'' +
                 ", scoreCardTimestamp=" + scoreCardTimestamp +
+                ", projectKey='" + projectKey + '\'' +
                 '}';
     }
 
@@ -264,5 +275,6 @@ public class ComponentHealthMetaModel implements Serializable {
         if (other.scoreCardReferenceVersion != null) this.scoreCardReferenceVersion = other.scoreCardReferenceVersion;
         if (other.scoreCardTimestamp != null) this.scoreCardTimestamp = other.scoreCardTimestamp;
         if (other.avgIssueAgeDays != null) this.avgIssueAgeDays = other.avgIssueAgeDays;
+        if (other.projectKey != null) this.projectKey = other.projectKey;
     }
 }
