@@ -32,6 +32,8 @@ import java.util.stream.StreamSupport;
 @ApplicationScoped
 public class DepsDevApiClient extends ApiClient {
     public Optional<String> fetchLatestVersion(String system, String name) {
+        if (system == null || name == null) return Optional.empty();
+
         String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name);
         return requestParseJsonForResult(url, (root) -> {
             JsonNode versionsNode = root.get("versions");
@@ -45,12 +47,16 @@ public class DepsDevApiClient extends ApiClient {
     }
 
     public Optional<Integer> fetchDependents(String system, String name, String version) {
+        if (system == null || name == null || version == null) return Optional.empty();
+
         String url = "https://api.deps.dev/v3alpha/systems/" + urlEncode(system) + "/packages/" + urlEncode(name)
                 + "/versions/" + urlEncode(version) + ":dependents";
         return requestParseJsonForResult(url, root -> Optional.of(root.path("dependentCount").asInt()));
     }
 
     public Optional<String> fetchSourceRepoProjectKey(String system, String name, String version) {
+        if (system == null || name == null || version == null) return Optional.empty();
+
         String url = "https://api.deps.dev/v3/systems/" + urlEncode(system) + "/packages/" + urlEncode(name)
                 + "/versions/" + urlEncode(version);
         // TODO: Write a better parser for extracting the actual source code repository from the API response
@@ -70,6 +76,8 @@ public class DepsDevApiClient extends ApiClient {
     }
 
     public Optional<ComponentHealthMetaModel> fetchScorecardAndStarsForksIssuesForProject(String project) {
+        if (project == null) return Optional.empty();
+
         String url = "https://api.deps.dev/v3/projects/" + urlEncode(project);
         return requestParseJsonForResult(url, (root) -> {
             ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);

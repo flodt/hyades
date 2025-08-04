@@ -84,6 +84,8 @@ public class GitHubApiClient extends ApiClient {
             return Optional.empty();
         }
 
+        if (project == null) return Optional.empty();
+
         try {
             ComponentHealthMetaModel metaModel = new ComponentHealthMetaModel(null);
             GHRepository repository = gitHub.getRepository(project.replace("github.com/", ""));
