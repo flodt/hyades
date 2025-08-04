@@ -60,6 +60,14 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
         return SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.containsKey(packageURL.getType());
     }
 
+    private String getNamespaceSeparatorForSystem(String system) {
+        if (SUPPORTED_PURL_TYPE_TO_DEPS_DEV_SYSTEM.get(PackageURL.StandardTypes.NPM).equalsIgnoreCase(system)) {
+            return "/";
+        } else {
+            return ":";
+        }
+    }
+
     @Override
     public ComponentHealthMetaModel analyze(PackageURL packageURL) {
         Component component = new Component();
@@ -82,7 +90,7 @@ public class DepsDevGitHubHealthMetaAnalyzer extends AbstractHealthMetaAnalyzer 
                 .orElseThrow(() -> new UnsupportedOperationException("Unsupported PURL type: " + packageURL.getType()));
         String name = Optional.ofNullable(packageURL.getNamespace())
                 .filter(ns -> !ns.isEmpty())
-                .map(ns -> ns + ":")
+                .map(ns -> ns + getNamespaceSeparatorForSystem(system))
                 .orElse("")
                 + packageURL.getName();
 
